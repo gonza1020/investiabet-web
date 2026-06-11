@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { logout } from "@/lib/api/auth";
 import { triggerScan } from "@/lib/api/picks";
 import type { User } from "@/lib/types/domain";
@@ -122,6 +123,7 @@ export function Topbar({
               Admin
             </Link>
           )}
+          <ThemeToggle />
           <button type="button" className="navbtn" onClick={() => logout()}>
             <span className="material-symbols-outlined text-[18px]">logout</span>
           </button>

@@ -1,7 +1,63 @@
 @import "tailwindcss";
 
-/* Variables legacy (paridad con templates/dashboard.html) */
+/* Tema claro (por defecto) */
 :root {
+  --bg: #f4f6f9;
+  --bg2: #ffffff;
+  --bg3: #eef1f6;
+  --bg4: #e2e8f0;
+  --border: #d8dee8;
+  --border2: #c5cdd8;
+  --text: #1a2332;
+  --text2: #5a6678;
+  --text3: #8b97ad;
+  --blue: #2563eb;
+  --blue-bg: rgba(37, 99, 235, 0.08);
+  --blue-border: rgba(37, 99, 235, 0.22);
+  --violet: #7c3aed;
+  --violet-bg: rgba(124, 58, 237, 0.08);
+  --violet-border: rgba(124, 58, 237, 0.22);
+  --teal: #059669;
+  --teal-bg: rgba(5, 150, 105, 0.1);
+  --teal-border: rgba(5, 150, 105, 0.28);
+  --green: #059669;
+  --secondary-container: #10b981;
+  --secondary: #059669;
+  --on-secondary-container: #ffffff;
+  --green-bg: rgba(5, 150, 105, 0.1);
+  --red: #dc2626;
+  --red-bg: rgba(220, 38, 38, 0.1);
+  --amber: #d97706;
+  --amber-bg: rgba(217, 119, 6, 0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --topbar-bg: rgba(255, 255, 255, 0.92);
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  --toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --login-card-shadow: 0 24px 64px rgba(15, 23, 42, 0.12);
+  --scrollbar-thumb: #c5cdd8;
+
+  --app-background: #f4f6f9;
+  --app-surface: #f4f6f9;
+  --app-surface-container-lowest: #ffffff;
+  --app-surface-container-low: #f8fafc;
+  --app-surface-container: #ffffff;
+  --app-surface-container-high: #eef1f6;
+  --app-surface-variant: #e2e8f0;
+  --app-on-surface: #1a2332;
+  --app-on-surface-variant: #5a6678;
+  --app-outline-variant: #d8dee8;
+  --app-secondary: #059669;
+  --app-secondary-container: #10b981;
+  --app-on-secondary-container: #ffffff;
+  --app-error: #dc2626;
+  --app-violet: #7c3aed;
+  --app-blue: #2563eb;
+  --app-amber: #d97706;
+}
+
+/* Tema oscuro */
+html.dark {
   --bg: #0b1420;
   --bg2: #18202d;
   --bg3: #222a38;
@@ -29,28 +85,49 @@
   --red-bg: rgba(239, 68, 68, 0.12);
   --amber: #fbbf6b;
   --amber-bg: rgba(245, 158, 11, 0.12);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --topbar-bg: rgba(10, 18, 30, 0.9);
+  --modal-overlay: rgba(0, 0, 0, 0.8);
+  --toast-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --login-card-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb: #2d3543;
+
+  --app-background: #0b1420;
+  --app-surface: #0b1420;
+  --app-surface-container-lowest: #0a121e;
+  --app-surface-container-low: #141c29;
+  --app-surface-container: #18202d;
+  --app-surface-container-high: #222a38;
+  --app-surface-variant: #2d3543;
+  --app-on-surface: #dbe3f5;
+  --app-on-surface-variant: #8b97ad;
+  --app-outline-variant: #1c2431;
+  --app-secondary: #7dffa2;
+  --app-secondary-container: #05e777;
+  --app-on-secondary-container: #00210b;
+  --app-error: #ffb4ab;
+  --app-violet: #b9a6ff;
+  --app-blue: #7fb0ff;
+  --app-amber: #fbbf6b;
 }
 
 @theme inline {
-  --color-background: #0b1420;
-  --color-surface: #0b1420;
-  --color-surface-container-lowest: #0a121e;
-  --color-surface-container-low: #141c29;
-  --color-surface-container: #18202d;
-  --color-surface-container-high: #222a38;
-  --color-surface-variant: #2d3543;
-  --color-on-surface: #dbe3f5;
-  --color-on-surface-variant: #8b97ad;
-  --color-outline-variant: #1c2431;
-  --color-secondary: #7dffa2;
-  --color-secondary-container: #05e777;
-  --color-on-secondary-container: #00210b;
-  --color-error: #ffb4ab;
-  --color-violet: #b9a6ff;
-  --color-blue: #7fb0ff;
-  --color-amber: #fbbf6b;
+  --color-background: var(--app-background);
+  --color-surface: var(--app-surface);
+  --color-surface-container-lowest: var(--app-surface-container-lowest);
+  --color-surface-container-low: var(--app-surface-container-low);
+  --color-surface-container: var(--app-surface-container);
+  --color-surface-container-high: var(--app-surface-container-high);
+  --color-surface-variant: var(--app-surface-variant);
+  --color-on-surface: var(--app-on-surface);
+  --color-on-surface-variant: var(--app-on-surface-variant);
+  --color-outline-variant: var(--app-outline-variant);
+  --color-secondary: var(--app-secondary);
+  --color-secondary-container: var(--app-secondary-container);
+  --color-on-secondary-container: var(--app-on-secondary-container);
+  --color-error: var(--app-error);
+  --color-violet: var(--app-violet);
+  --color-blue: var(--app-blue);
+  --color-amber: var(--app-amber);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -230,7 +307,7 @@ body.has-app-topbar {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(10, 18, 30, 0.9);
+  background: var(--topbar-bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
@@ -263,7 +340,7 @@ body.has-app-topbar {
 .app-shell-modal-bg {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--modal-overlay);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
@@ -323,7 +400,7 @@ body.has-app-topbar {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s, transform 0.25s;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--toast-shadow);
   max-width: 90vw;
   text-align: center;
 }
@@ -514,7 +591,7 @@ body.has-app-topbar {
 .confidence-badge.high { background: rgba(5, 231, 119, 0.12); color: #7dffa2; }
 
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #2d3543; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
 
 /* Login page */
 .login-page {
@@ -535,7 +612,7 @@ body.has-app-topbar {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--login-card-shadow);
 }
 
 .login-logo { text-align: center; margin-bottom: 32px; }

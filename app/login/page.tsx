@@ -1,6 +1,7 @@
 "use client";
 
 import { login, register } from "@/lib/api/auth";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -169,6 +170,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="login-page">
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <Suspense fallback={<div className="login-card">Cargando…</div>}>
         <LoginForm />
       </Suspense>
