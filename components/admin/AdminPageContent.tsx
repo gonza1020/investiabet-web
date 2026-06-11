@@ -1,5 +1,6 @@
 "use client";
 
+import { EngineTrackRecordSection } from "@/components/admin/EngineTrackRecordSection";
 import { Badge } from "@/components/ui/Badge";
 import {
   changeUserPlan,
@@ -183,6 +184,8 @@ export function AdminPageContent() {
           Hasta cuántas horas en el futuro el motor analiza partidos. Se aplica desde el próximo escaneo.
         </p>
       </section>
+
+      <EngineTrackRecordSection />
 
       <section className="mb-6 rounded-xl border border-outline-variant bg-surface-container p-6">
         <div className="mb-4 flex items-center gap-2">

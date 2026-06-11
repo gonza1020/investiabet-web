@@ -178,3 +178,80 @@ export interface AutoResultSuggestion {
   score_away?: number;
   reason?: string;
 }
+
+export type EngineSignalType = "gold" | "sure";
+export type EngineSignalStatus =
+  | "pending"
+  | "won"
+  | "lost"
+  | "push"
+  | "void"
+  | "expired";
+export type EngineSignalPeriod = "all" | "30d";
+export type EngineSignalConfidence = "minimal" | "low" | "medium" | "high";
+
+export interface EngineSignalStatsBlock {
+  /** Señales vigentes (excluye expiradas); base de win rate / ROI */
+  total: number;
+  /** Historial completo del período, incluye expiradas */
+  detected: number;
+  expired: number;
+  resolved: number;
+  pending: number;
+  won: number;
+  win_rate: number;
+  pnl: number;
+  roi: number;
+  confidence: EngineSignalConfidence;
+}
+
+export interface EngineSignalsStatsResponse {
+  period: EngineSignalPeriod;
+  gold_stats: EngineSignalStatsBlock;
+  sure_stats: EngineSignalStatsBlock;
+  combined_stats: EngineSignalStatsBlock;
+}
+
+export interface EngineSignal {
+  id: number;
+  signal_id: string;
+  signal_type: EngineSignalType;
+  status: EngineSignalStatus;
+  event?: string;
+  sport?: string;
+  pick_team?: string;
+  market?: string;
+  odds_ref?: number;
+  edge?: number;
+  confidence_pct?: number;
+  handicap_point?: number;
+  total_point?: number;
+  scanned_at?: string;
+  last_seen_at?: string;
+  expired_at?: string;
+  score_home?: number;
+  score_away?: number;
+  pnl?: number;
+  result_reason?: string;
+  resolution_source?: "auto" | "manual";
+}
+
+export interface EngineSignalSuggestResultResponse extends ApiOkResponse {
+  suggested?: EngineSignalStatus | "undetermined";
+  reason?: string;
+  score_home?: number;
+  score_away?: number;
+}
+
+export interface EngineSignalsListResponse {
+  ok: boolean;
+  items: EngineSignal[];
+  limit: number;
+  offset: number;
+  total: number;
+}
+
+export interface EngineSignalOverrideResultResponse extends ApiOkResponse {
+  status?: EngineSignalStatus;
+  pnl?: number;
+}
