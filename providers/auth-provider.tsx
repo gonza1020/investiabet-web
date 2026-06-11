@@ -1,6 +1,7 @@
 "use client";
 
 import { getMe } from "@/lib/api/account";
+import { AUTH_TOKEN_CHANGED_EVENT } from "@/lib/auth/constants";
 import { getToken } from "@/lib/auth/token";
 import type { User } from "@/lib/types/domain";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    setHasToken(!!getToken());
+    const syncToken = () => setHasToken(!!getToken());
+    syncToken();
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, syncToken);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, syncToken);
   }, []);
 
   const { data: user, isLoading } = useQuery({
