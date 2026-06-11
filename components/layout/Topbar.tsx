@@ -2,6 +2,8 @@
 
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
+import { buildNavItems, navClass } from "@/components/layout/nav-config";
 import { logout } from "@/lib/api/auth";
 import { triggerScan } from "@/lib/api/picks";
 import type { User } from "@/lib/types/domain";
@@ -43,6 +45,7 @@ export function Topbar({
 }: TopbarProps) {
   const barRef = useRef<HTMLElement>(null);
   const [scanning, setScanning] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const syncHeight = useCallback(() => {
     const bar = barRef.current;
@@ -56,8 +59,6 @@ export function Topbar({
     return () => window.removeEventListener("resize", syncHeight);
   }, [syncHeight, scanBadge, lastScan]);
 
-  const navClass = (id: AppPage) => (id === page ? "navbtn navbtn-active" : "navbtn");
-
   const handleScan = async () => {
     setScanning(true);
     try {
@@ -70,65 +71,112 @@ export function Topbar({
   };
 
   const showScan = user.plan !== "free";
+  const navItems = buildNavItems(page, user.plan, showScan);
 
   return (
-    <header className="app-topbar" id="app-topbar" ref={barRef}>
-      <div className="app-topbar-inner">
-        <div className="app-topbar-left">
-          <span className="app-topbar-brand">InvestiaBet</span>
-          <Badge variant={planVariants[user.plan] ?? "gray"}>
-            {planLabels[user.plan] ?? user.plan}
-          </Badge>
-          {page === "picks" && scanBadge && (
-            <>
-              <span className={scanBadge.className}>{scanBadge.text}</span>
-              {lastScan && (
-                <span className="hidden text-xs text-on-surface-variant lg:inline">
-                  {lastScan}
-                </span>
-              )}
-            </>
-          )}
+    <>
+      <header className="app-topbar" id="app-topbar" ref={barRef}>
+        <div className="app-topbar-inner">
+          <div className="app-topbar-left">
+            <span className="app-topbar-brand">InvestiaBet</span>
+            <Badge variant={planVariants[user.plan] ?? "gray"}>
+              {planLabels[user.plan] ?? user.plan}
+            </Badge>
+            {page === "picks" && scanBadge && (
+              <>
+                <span className={scanBadge.className}>{scanBadge.text}</span>
+                {lastScan && (
+                  <span className="hidden text-xs text-on-surface-variant lg:inline">
+                    {lastScan}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="navbtn md:hidden"
+            aria-label="Abrir menú"
+            aria-expanded={drawerOpen}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <span className="material-symbols-outlined text-[22px]">menu</span>
+          </button>
+
+          <div className="app-topbar-right hidden md:flex">
+            {navItems.map((item) => {
+              if (item.type === "link") {
+                const cls = item.adminStyle
+                  ? `navbtn navbtn-admin ${page === item.page ? "navbtn-active" : ""}`
+                  : navClass(page, item.page);
+                return (
+                  <Link key={item.href} href={item.href} className={cls}>
+                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </Link>
+                );
+              }
+
+              if (item.action === "logout") {
+                return (
+                  <button
+                    key={item.action}
+                    type="button"
+                    className="navbtn"
+                    onClick={() => logout()}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                  </button>
+                );
+              }
+
+              const onClick =
+                item.action === "howto"
+                  ? onHowtoOpen
+                  : item.action === "profile"
+                    ? onProfileOpen
+                    : handleScan;
+
+              const label =
+                item.action === "scan" && scanning
+                  ? (item.scanningLabel ?? item.label)
+                  : item.label;
+
+              return (
+                <button
+                  key={item.action}
+                  type="button"
+                  className="navbtn"
+                  disabled={item.action === "scan" && scanning}
+                  onClick={onClick}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[18px]${item.action === "scan" && scanning ? " spin" : ""}`}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              );
+            })}
+            <ThemeToggle />
+          </div>
         </div>
-        <div className="app-topbar-right">
-          <Link href="/" className={navClass("picks")}>
-            <span className="material-symbols-outlined text-[18px]">monitoring</span>
-            <span className="hidden sm:inline">Picks</span>
-          </Link>
-          <Link href="/stats" className={navClass("stats")}>
-            <span className="material-symbols-outlined text-[18px]">query_stats</span>
-            <span className="hidden sm:inline">Estadísticas</span>
-          </Link>
-          <button type="button" className="navbtn" onClick={onHowtoOpen}>
-            <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
-            <span className="hidden sm:inline">Cómo usar</span>
-          </button>
-          <button type="button" className="navbtn" onClick={onProfileOpen}>
-            <span className="material-symbols-outlined text-[18px]">settings</span>
-            <span className="hidden sm:inline">Perfil</span>
-          </button>
-          {showScan && (
-            <button type="button" className="navbtn" disabled={scanning} onClick={handleScan}>
-              <span className={`material-symbols-outlined text-[18px]${scanning ? " spin" : ""}`}>
-                refresh
-              </span>
-              <span className="hidden sm:inline">{scanning ? "Escaneando…" : "Escanear"}</span>
-            </button>
-          )}
-          {user.plan === "admin" && (
-            <Link
-              href="/admin"
-              className={`navbtn navbtn-admin ${page === "admin" ? "navbtn-active" : ""}`}
-            >
-              Admin
-            </Link>
-          )}
-          <ThemeToggle />
-          <button type="button" className="navbtn" onClick={() => logout()}>
-            <span className="material-symbols-outlined text-[18px]">logout</span>
-          </button>
-        </div>
-      </div>
-    </header>
+      </header>
+
+      <MobileNavDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        page={page}
+        userPlan={user.plan}
+        showScan={showScan}
+        scanning={scanning}
+        onHowtoOpen={onHowtoOpen}
+        onProfileOpen={onProfileOpen}
+        onScan={handleScan}
+        onLogout={() => logout()}
+      />
+    </>
   );
 }

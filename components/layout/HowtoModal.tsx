@@ -9,7 +9,7 @@ interface HowtoModalProps {
 
 export function HowtoModal({ open, onClose }: HowtoModalProps) {
   return (
-    <Modal open={open} onClose={onClose} maxWidth="480px">
+    <Modal open={open} onClose={onClose} maxWidth="min(480px, calc(100vw - 32px))">
       <div className="mb-3.5 text-base font-semibold text-[var(--teal)]">
         🚀 Cómo usar la app a tu favor
       </div>
