@@ -194,7 +194,7 @@ export function DashboardPage() {
       onScanComplete={() => refetch()}
       onProfileSaved={() => refetch()}
     >
-      <main className="custom-scrollbar mx-auto max-w-[1400px] px-5 py-6">
+      <main className="custom-scrollbar mx-auto max-w-[1400px] px-4 py-6 sm:px-5">
         {user?.plan === "free" && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary/20 bg-secondary/5 p-4">
             <div>
@@ -209,7 +209,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Capital total" value={fmtUSD(data?.bankroll)} sub={bankrollSub(currency, enJuego, disponible)} />
           <KpiCard label="⭐ Gold Tips" value={String((data?.gold_tips ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_gold_potencial) : "🔒"}`} valueClass="text-violet" />
           <KpiCard label="🔒 Alta confianza" value={String((data?.sure_bets ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_sure_potencial) : "🔒"}`} valueClass="text-secondary" />
@@ -249,24 +249,28 @@ export function DashboardPage() {
               <span className="material-symbols-outlined text-secondary">verified</span>
               <h2 className="font-headline-md text-headline-md">Gold Tips — Mejor valor</h2>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="text-xs text-on-surface-variant">Ordenar:</label>
-              <select className="select" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
-                <option value="fecha">📅 Fecha (más próximos)</option>
-                <option value="ventaja">📈 Ventaja (mejor valor)</option>
-              </select>
-              <label className="text-xs text-on-surface-variant">Ventaja mín.:</label>
-              <select
-                className="select"
-                value={minEdge ?? minEdgeOptions[0] ?? 0}
-                onChange={(e) => setMinEdge(parseInt(e.target.value))}
-              >
-                {minEdgeOptions.map((v, i) => (
-                  <option key={v} value={v}>
-                    {v}%{i === 0 ? " (todas)" : ""}
-                  </option>
-                ))}
-              </select>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <label className="shrink-0 text-xs text-on-surface-variant">Ordenar:</label>
+                <select className="select w-full sm:w-auto" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
+                  <option value="fecha">📅 Fecha (más próximos)</option>
+                  <option value="ventaja">📈 Ventaja (mejor valor)</option>
+                </select>
+              </div>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <label className="shrink-0 text-xs text-on-surface-variant">Ventaja mín.:</label>
+                <select
+                  className="select w-full sm:w-auto"
+                  value={minEdge ?? minEdgeOptions[0] ?? 0}
+                  onChange={(e) => setMinEdge(parseInt(e.target.value))}
+                >
+                  {minEdgeOptions.map((v, i) => (
+                    <option key={v} value={v}>
+                      {v}%{i === 0 ? " (todas)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">

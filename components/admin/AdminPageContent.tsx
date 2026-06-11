@@ -1,6 +1,8 @@
 "use client";
 
 import { EngineTrackRecordSection } from "@/components/admin/EngineTrackRecordSection";
+import { InvitationCard } from "@/components/admin/InvitationCard";
+import { UserCard } from "@/components/admin/UserCard";
 import { Badge } from "@/components/ui/Badge";
 import {
   changeUserPlan,
@@ -148,8 +150,8 @@ export function AdminPageContent() {
   };
 
   return (
-    <main className="mx-auto max-w-[1400px] px-5 py-6">
-      <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
+    <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-5">
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <AdminKpi label="Usuarios" value={users.length} />
         <AdminKpi label="Free" value={users.filter((x) => x.plan === "free").length} muted />
         <AdminKpi label="Premium" value={users.filter((x) => x.plan === "premium").length} className="text-secondary" />
@@ -266,7 +268,13 @@ function AdminKpi({
 
 function UsersTable({ users, onChanged }: { users: AdminUser[]; onChanged: () => void }) {
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="space-y-3 md:hidden">
+        {users.map((x) => (
+          <UserCard key={x.id} user={x} onChanged={onChanged} />
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="admin-table">
         <thead>
           <tr>
@@ -320,25 +328,26 @@ function UsersTable({ users, onChanged }: { users: AdminUser[]; onChanged: () =>
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
 function InvitationsTable({ invitations }: { invitations: Invitation[] }) {
   if (!invitations.length) {
     return (
-      <div className="mt-4 overflow-x-auto">
-        <table className="admin-table">
-          <tbody>
-            <tr><td colSpan={5} className="py-6 text-center text-[var(--text2)]">Sin códigos generados.</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <div className="mt-4 py-6 text-center text-[var(--text2)]">Sin códigos generados.</div>
     );
   }
 
   return (
-    <div className="mt-4 overflow-x-auto">
+    <>
+      <div className="mt-4 space-y-3 md:hidden">
+        {invitations.map((x) => (
+          <InvitationCard key={x.code} invitation={x} />
+        ))}
+      </div>
+      <div className="mt-4 hidden overflow-x-auto md:block">
       <table className="admin-table">
         <thead>
           <tr><th>Código</th><th>Plan</th><th>Usos</th><th>Estado</th><th>Fecha</th></tr>
@@ -355,6 +364,7 @@ function InvitationsTable({ invitations }: { invitations: Invitation[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

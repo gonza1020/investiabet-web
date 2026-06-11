@@ -3,6 +3,7 @@
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { formatSignalScore } from "@/lib/engine/market-kind";
 import type { EngineSignal, EngineSignalStatus } from "@/lib/types/domain";
+import { EngineSignalCard } from "@/components/admin/EngineSignalCard";
 import { fmtDate } from "@/lib/format";
 
 const statusBadge: Record<EngineSignalStatus, BadgeVariant> = {
@@ -57,7 +58,13 @@ export function EngineSignalsTable({ items, onCorrect }: EngineSignalsTableProps
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="space-y-3 md:hidden">
+        {items.map((x) => (
+          <EngineSignalCard key={x.id} signal={x} onCorrect={onCorrect} />
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="admin-table">
         <thead>
           <tr>
@@ -171,6 +178,7 @@ export function EngineSignalsTable({ items, onCorrect }: EngineSignalsTableProps
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

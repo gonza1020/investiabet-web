@@ -11,7 +11,7 @@ export function Modal({
   open,
   onClose,
   children,
-  maxWidth = "400px",
+  maxWidth = "min(400px, calc(100vw - 32px))",
 }: ModalProps) {
   if (!open) return null;
 

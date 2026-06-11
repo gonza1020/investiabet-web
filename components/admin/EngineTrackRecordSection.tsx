@@ -43,7 +43,7 @@ function OfficialStatsBlock({
       <p className="mb-2 text-xs font-medium uppercase text-on-surface-variant">
         Recomendaciones vigentes (oficial)
       </p>
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div>
           <span className="text-on-surface-variant">Vigentes</span>
           <div className="font-stat-lg text-stat-lg">{stats?.total ?? "—"}</div>
@@ -92,7 +92,7 @@ function HistoricalStatsBlock({
       <p className="mb-2 text-[10px] text-on-surface-variant">
         Incluye expiradas con resultado hipotético al cierre del partido
       </p>
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div>
           <span className="text-on-surface-variant">Detectadas</span>
           <div className="font-stat-lg text-stat-lg">{stats?.total ?? "—"}</div>

@@ -315,12 +315,19 @@ body.has-app-topbar {
 .app-topbar-inner {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 12px 20px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .app-topbar-inner {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
 }
 
 .app-topbar-left,
@@ -335,6 +342,61 @@ body.has-app-topbar {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--teal);
+}
+
+.mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--modal-overlay);
+  backdrop-filter: blur(4px);
+}
+
+.mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(280px, 85vw);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  background: var(--topbar-bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.25);
+  padding: 16px;
+  animation: mobile-nav-slide-in 0.2s ease-out;
+}
+
+@keyframes mobile-nav-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mobile-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mobile-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobile-nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .app-shell-modal-bg {
@@ -355,7 +417,7 @@ body.has-app-topbar {
   border-radius: var(--radius);
   padding: 26px;
   width: 100%;
-  max-width: 400px;
+  max-width: min(400px, calc(100vw - 32px));
 }
 
 .app-shell-field { margin-bottom: 14px; }
@@ -441,10 +503,20 @@ body.has-app-topbar {
 .tabs {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 768px) {
+  .tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 }
 
 .tab {
@@ -522,7 +594,7 @@ body.has-app-topbar {
   margin-top: 10px;
 }
 
-.resultado-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.resultado-btns { display: grid; gap: 8px; }
 
 .rbtn {
   padding: 8px 16px;
@@ -599,7 +671,7 @@ body.has-app-topbar {
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   background-image:
     radial-gradient(ellipse at 20% 50%, rgba(127, 176, 255, 0.06) 0%, transparent 60%),
     radial-gradient(ellipse at 80% 20%, rgba(185, 166, 255, 0.06) 0%, transparent 60%);
@@ -607,12 +679,17 @@ body.has-app-topbar {
 
 .login-card {
   width: 100%;
-  max-width: 440px;
-  padding: 40px 36px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 28px 20px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--login-card-shadow);
+}
+
+@media (min-width: 640px) {
+  .login-page { padding: 20px; }
+  .login-card { padding: 40px 36px; }
 }
 
 .login-logo { text-align: center; margin-bottom: 32px; }
@@ -769,10 +846,16 @@ body.has-app-topbar {
 
 .premium-features {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 20px;
   text-align: left;
+}
+
+@media (min-width: 640px) {
+  .premium-features {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .premium-feat {
@@ -929,6 +1012,13 @@ body.has-app-topbar {
   gap: 4px;
   flex: 1;
   min-width: 150px;
+}
+
+@media (max-width: 767px) {
+  .field {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .field label {
