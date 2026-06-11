@@ -124,7 +124,7 @@ export function StatsPageContent() {
         </section>
       )}
 
-      <KpiGrid data={data} period={period} stats={b} />
+      <KpiGrid stats={b} />
       <KpiStrip stats={b} />
 
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -350,7 +350,7 @@ function PendingPickCard({
   );
 }
 
-function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period; stats?: PeriodStats }) {
+function KpiGrid({ stats }: { stats?: PeriodStats }) {
   if (!stats?.total_placed) {
     return (
       <div id="kpi-grid" className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -363,15 +363,14 @@ function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period;
   }
   const wr = stats.win_rate ?? 0;
   const growthRoi = stats.growth_roi ?? stats.roi;
-  const dailyRoi = data.daily_roi;
-  const periodDays = period === "mes" ? Math.min(data.active_days ?? 1, 30) : data.active_days ?? 1;
+  const yieldRoi = stats.roi ?? 0;
 
   return (
     <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <KpiCard label="ROI (crecimiento)" value={fmtPct(growthRoi)} color={(growthRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`sobre tu capital inicial · yield ${fmtPct(stats.roi)}`} bar={undefined} />
+      <KpiCard label="ROI (crecimiento)" value={fmtPct(growthRoi)} color={(growthRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub="sobre tu capital inicial" />
+      <KpiCard label="Yield" value={fmtPct(yieldRoi)} color={yieldRoi >= 0 ? "var(--teal)" : "var(--red)"} sub={`P&L sobre apuestas decididas · ARS ${fmtMiles(stats.staked_evaluable ?? stats.staked_resolved)} invertidos`} />
       <KpiCard label="% de aciertos" value={`${fmt(wr, 1)}%`} color={wr >= 60 ? "var(--teal)" : wr >= 50 ? "var(--blue)" : wr >= 40 ? "var(--amber)" : "var(--red)"} sub={`${stats.won ?? 0} ✓ · ${stats.lost ?? 0} ✗ · ${stats.cashouts ?? 0} 💸 · ${stats.voids ?? 0} —`} bar={wr} />
       <KpiCard label="Ganancia neta" value={fmtUSD(stats.pnl_total, "ARS", true)} color={(stats.pnl_total ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub="total ganado o perdido" />
-      <KpiCard label="Rendimiento diario" value={fmtPct(dailyRoi)} color={(dailyRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`compuesto · ${periodDays} día(s)`} />
     </div>
   );
 }
