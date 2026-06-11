@@ -1,0 +1,397 @@
+"use client";
+
+import {
+  FuturePickCard,
+  LivePickCard,
+  SkipCard,
+  sortPicks,
+  SureBetCard,
+  ValuePickCard,
+} from "@/components/picks/PickCards";
+import { AppShell } from "@/components/layout/AppShell";
+import { placePick } from "@/lib/api/picks";
+import { fmtPct, fmtUSD } from "@/lib/format";
+import type { Pick, PicksResponse } from "@/lib/types/domain";
+import { usePlacedPicks } from "@/hooks/use-placed-picks";
+import { usePicks } from "@/hooks/use-picks";
+import { useUser } from "@/providers/auth-provider";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+type SortMode = "fecha" | "ventaja";
+type SportTab =
+  | "todos"
+  | "futbol"
+  | "tenis"
+  | "basquet"
+  | "esports"
+  | "otros"
+  | "discarded_items";
+
+const SPORT_TABS: { id: SportTab; label: string }[] = [
+  { id: "todos", label: "Todos" },
+  { id: "futbol", label: "Fútbol" },
+  { id: "tenis", label: "Tenis" },
+  { id: "basquet", label: "Básquet" },
+  { id: "esports", label: "Esports" },
+  { id: "otros", label: "MMA/Béisbol" },
+  { id: "discarded_items", label: "Descartados" },
+];
+
+function filterBySport(data: PicksResponse, key: SportTab): Pick[] {
+  const all = data.gold_tips ?? data.valid_picks ?? [];
+  if (key === "todos") return all;
+  if (key === "otros") return all.filter((p) => ["MMA", "Béisbol"].includes(p.sport ?? ""));
+  const map: Record<string, string> = {
+    futbol: "Fútbol",
+    tenis: "Tenis",
+    basquet: "Básquet",
+    esports: "Esports",
+  };
+  return all.filter((p) => p.sport === map[key]);
+}
+
+export function DashboardPage() {
+  const { user } = useUser();
+  const { data, isLoading, refetch } = usePicks();
+  const { getMark, refetch: refetchPlaced } = usePlacedPicks();
+  const qc = useQueryClient();
+  const [sortMode, setSortMode] = useState<SortMode>("fecha");
+  const [minEdge, setMinEdge] = useState<number | null>(null);
+  const [currentTab, setCurrentTab] = useState<SportTab>("todos");
+  const [placingKey, setPlacingKey] = useState<string | null>(null);
+  const [bankSub, setBankSub] = useState<{ enJuego: number; disponible: number } | null>(null);
+
+  const premium = user?.plan === "premium" || user?.plan === "admin";
+
+  const minEdgeOptions = useMemo(() => {
+    if (!data) return [];
+    const floor = Math.max(0, Math.round((data.min_edge_pct ?? 0) * 100));
+    return [floor, floor + 3, floor + 8];
+  }, [data]);
+
+  useEffect(() => {
+    if (minEdgeOptions.length && minEdge === null) {
+      setMinEdge(minEdgeOptions[0]);
+    }
+  }, [minEdgeOptions, minEdge]);
+
+  useEffect(() => {
+    if (data?.scanning && !data.gold_tips) {
+      const t = window.setTimeout(() => refetch(), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [data, refetch]);
+
+  const handlePlace = useCallback(
+    async (pick: Pick, type?: string) => {
+      const key = `${pick.event}|${pick.pick_team}`;
+      setPlacingKey(key);
+      try {
+        const body = {
+          ...pick,
+          bankroll_engine: data?.bankroll ?? pick.bankroll_engine,
+          stake_usd: pick.stake_usd,
+          ...(type ? { type } : {}),
+        };
+        const d = await placePick(body);
+        if (d.ok) {
+          if (d.en_juego != null) {
+            setBankSub({ enJuego: d.en_juego, disponible: d.disponible ?? 0 });
+          }
+          await refetchPlaced();
+          qc.invalidateQueries({ queryKey: ["stats"] });
+        }
+      } finally {
+        setPlacingKey(null);
+      }
+    },
+    [data, refetchPlaced, qc],
+  );
+
+  const handlePlaceFree = useCallback(
+    async (pick: Pick) => {
+      const monto = window.prompt(
+        `¿Cuánto vas a apostar? (en ${data?.currency ?? "ARS"})`,
+      );
+      if (monto === null) return;
+      const stake = parseFloat(monto);
+      if (!stake || stake <= 0) {
+        window.alert("Ingresá un monto válido.");
+        return;
+      }
+      await handlePlace({ ...pick, stake_usd: Math.round(stake * 100) / 100 });
+    },
+    [data, handlePlace],
+  );
+
+  const scanBadge = data
+    ? { className: "badge b-teal", text: "● Activo" }
+    : { className: "badge b-amber", text: "Cargando…" };
+
+  const lastScan = data?.last_scan ? `Último: ${data.last_scan}` : undefined;
+
+  const filteredGold = useMemo(() => {
+    if (!data) return [];
+    const minE = (minEdge ?? 0) / 100;
+    const picks = (data.gold_tips ?? data.valid_picks ?? []).filter((p) => (p.edge ?? 0) >= minE);
+    return sortPicks(picks, sortMode);
+  }, [data, minEdge, sortMode]);
+
+  const sureBets = useMemo(
+    () => sortPicks(data?.sure_bets ?? [], sortMode),
+    [data, sortMode],
+  );
+
+  const livePicks = useMemo(() => {
+    const vivos = data?.live_picks ?? [];
+    const seen = new Set<string>();
+    return sortPicks(
+      vivos.filter((p) => {
+        if (seen.has(p.event)) return false;
+        seen.add(p.event);
+        return true;
+      }),
+      sortMode,
+    );
+  }, [data, sortMode]);
+
+  const futuresActive = useMemo(
+    () => sortPicks((data?.futures_picks ?? []).filter((p) => !p.discarded), sortMode),
+    [data, sortMode],
+  );
+
+  const futuresRef = useMemo(
+    () => (data?.futures_picks ?? []).filter((p) => p.discarded),
+    [data],
+  );
+
+  const tabPicks = useMemo(() => {
+    if (!data) return [];
+    if (currentTab === "discarded_items") return [];
+    return sortPicks(filterBySport(data, currentTab), sortMode);
+  }, [data, currentTab, sortMode]);
+
+  const currency = data?.currency ?? "ARS";
+  const enJuego = bankSub?.enJuego ?? user?.en_juego ?? 0;
+  const disponible = bankSub?.disponible ?? user?.disponible ?? data?.bankroll ?? 0;
+
+  const cardProps = (pick: Pick, type?: string) => ({
+    pick,
+    currency,
+    showStake: pick.stake_usd != null,
+    mark: getMark(pick.event, pick.pick_team),
+    placing: placingKey === `${pick.event}|${pick.pick_team}`,
+    onPlace: () => handlePlace(pick, type),
+    onPlaceFree: () => handlePlaceFree(pick),
+  });
+
+  return (
+    <AppShell
+      page="picks"
+      scanBadge={scanBadge}
+      lastScan={lastScan}
+      onScanComplete={() => refetch()}
+      onProfileSaved={() => refetch()}
+    >
+      <main className="custom-scrollbar mx-auto max-w-[1400px] px-5 py-6">
+        {user?.plan === "free" && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary/20 bg-secondary/5 p-4">
+            <div>
+              <div className="mb-0.5 font-semibold text-secondary">Plan Free</div>
+              <div className="text-sm text-on-surface-variant">
+                Ves hasta 5 Gold Tips y 3 de alta confianza con su ventaja. Los montos sugeridos por
+                el motor y los picks en vivo son Premium.
+                {(data?.blocked_picks ?? 0) > 0 &&
+                  ` Hay ${data?.blocked_picks} Gold Tips más en este escaneo que no estás viendo.`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard label="Capital total" value={fmtUSD(data?.bankroll)} sub={bankrollSub(currency, enJuego, disponible)} />
+          <KpiCard label="⭐ Gold Tips" value={String((data?.gold_tips ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_gold_potencial) : "🔒"}`} valueClass="text-violet" />
+          <KpiCard label="🔒 Alta confianza" value={String((data?.sure_bets ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_sure_potencial) : "🔒"}`} valueClass="text-secondary" />
+          <KpiCard label="Partidos analizados" value={String(data?.total_events ?? "—")} sub={`próximas ${data?.window_hours ?? 24}hs`} valueClass="text-blue" />
+        </section>
+
+        {(user?.plan !== "free" ? livePicks.length > 0 : true) && (
+          <section className="mb-10">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <span className="h-2.5 w-2.5 animate-pulse-dot rounded-full bg-error" />
+              <h2 className="font-headline-md text-headline-md text-error">En Vivo</h2>
+              <span className="badge b-red">
+                {user?.plan === "free" ? "Premium" : `${livePicks.length} picks`}
+              </span>
+              <span className="text-xs text-on-surface-variant">
+                Cuotas cambian rápido · verificá en tu casa antes de apostar
+              </span>
+            </div>
+            {user?.plan === "free" ? (
+              <div className="empty">
+                <span className="empty-icon">🔒</span>
+                Los picks de partidos en vivo son una función Premium.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {livePicks.map((p) => (
+                  <LivePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="mb-10">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">verified</span>
+              <h2 className="font-headline-md text-headline-md">Gold Tips — Mejor valor</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs text-on-surface-variant">Ordenar:</label>
+              <select className="select" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
+                <option value="fecha">📅 Fecha (más próximos)</option>
+                <option value="ventaja">📈 Ventaja (mejor valor)</option>
+              </select>
+              <label className="text-xs text-on-surface-variant">Ventaja mín.:</label>
+              <select
+                className="select"
+                value={minEdge ?? minEdgeOptions[0] ?? 0}
+                onChange={(e) => setMinEdge(parseInt(e.target.value))}
+              >
+                {minEdgeOptions.map((v, i) => (
+                  <option key={v} value={v}>
+                    {v}%{i === 0 ? " (todas)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {isLoading || (data?.scanning && !data.gold_tips) ? (
+              <div className="empty">
+                <span className="spin mb-2 block text-2xl">↻</span>
+                Calculando picks…
+              </div>
+            ) : filteredGold.length ? (
+              filteredGold.map((p) => (
+                <ValuePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+              ))
+            ) : (
+              <div className="empty">
+                <span className="empty-icon">📊</span>
+                Sin Gold Tips con ventaja ≥ {minEdge ?? 0}%
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">lock</span>
+            <h2 className="font-headline-md text-headline-md">Alta Confianza</h2>
+            <span className="text-xs text-on-surface-variant">{sureBets.length} encontradas</span>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {sureBets.length ? (
+              sureBets.map((p) => (
+                <SureBetCard key={`${p.event}-${p.pick_team}`} {...cardProps(p, "sure")} />
+              ))
+            ) : (
+              <div className="empty">
+                <span className="empty-icon">🔒</span>
+                Sin picks de alta confianza por ahora.
+                <br />
+                <span className="text-xs">El motor escanea el mercado cada ~30 min.</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {(futuresActive.length > 0 || futuresRef.length > 0) && (
+          <section className="mb-10">
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <span className="material-symbols-outlined text-amber">emoji_events</span>
+              <h2 className="font-headline-md text-headline-md text-amber">Futures / Campeón</h2>
+              <span className="badge b-amber">
+                {futuresActive.length ? `${futuresActive.length} picks` : `${futuresRef.length} ref.`}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {(futuresActive.length ? futuresActive : futuresRef).map((p) => (
+                <FuturePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section>
+          <div className="tabs">
+            {SPORT_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`tab${currentTab === t.id ? " active" : ""}`}
+                onClick={() => setCurrentTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {currentTab === "discarded_items" ? (
+            (data?.discarded_picks ?? []).length ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {(data?.discarded_picks ?? []).map((p) => (
+                  <SkipCard key={`${p.event}-${p.pick_team}`} pick={p} />
+                ))}
+              </div>
+            ) : (
+              <div className="empty">✓ Sin picks descartados.</div>
+            )
+          ) : tabPicks.length ? (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {tabPicks.map((p) => (
+                <ValuePickCard key={`tab-${p.event}-${p.pick_team}`} {...cardProps(p)} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty">
+              <span className="empty-icon">🔍</span>
+              Sin picks de {currentTab} en las próximas {data?.window_hours ?? 24}hs.
+            </div>
+          )}
+        </section>
+      </main>
+    </AppShell>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  valueClass = "",
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="card-border rounded-xl bg-surface-container p-5">
+      <p className="font-data-label text-data-label mb-2 uppercase text-on-surface-variant">{label}</p>
+      <div className={`font-display-lg text-display-lg ${valueClass}`}>{value}</div>
+      <p className="mt-1 text-xs text-on-surface-variant">{sub}</p>
+    </div>
+  );
+}
+
+function bankrollSub(currency: string, enJuego: number, disponible: number): string {
+  if (enJuego > 0) {
+    const miles = (n: number) => Math.round(n).toLocaleString("es-AR");
+    return `${currency} · En juego: ${miles(enJuego)} · Disponible: ${miles(disponible)}`;
+  }
+  return currency;
+}
