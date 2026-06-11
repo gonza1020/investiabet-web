@@ -76,10 +76,19 @@ export function EngineSignalsTable({ items, onCorrect }: EngineSignalsTableProps
         <tbody>
           {items.map((x) => {
             const score = formatSignalScore(x);
+            const hasHypo =
+              x.status === "expired" && x.hypothetical_status != null;
+            const displayPnl = hasHypo ? x.hypothetical_pnl : x.pnl;
             const pnlColor =
-              x.pnl == null ? "var(--text2)" : x.pnl >= 0 ? "var(--teal)" : "var(--red)";
+              displayPnl == null
+                ? "var(--text2)"
+                : displayPnl >= 0
+                  ? "var(--teal)"
+                  : "var(--red)";
             const pnlText =
-              x.pnl != null ? `${x.pnl >= 0 ? "+" : ""}${Math.round(x.pnl)}` : "—";
+              displayPnl != null
+                ? `${displayPnl >= 0 ? "+" : ""}${Math.round(displayPnl)}`
+                : "—";
 
             return (
               <tr key={x.id}>
@@ -123,10 +132,26 @@ export function EngineSignalsTable({ items, onCorrect }: EngineSignalsTableProps
                       </span>
                     </>
                   )}
+                  {hasHypo && x.hypothetical_status && (
+                    <>
+                      <br />
+                      <Badge variant={statusBadge[x.hypothetical_status] ?? "gray"}>
+                        Hip: {statusLabel[x.hypothetical_status]}
+                      </Badge>
+                    </>
+                  )}
                 </td>
-                <td className="text-xs">{score}</td>
+                <td className="text-xs">
+                  {score}
+                  {hasHypo && score !== "—" && (
+                    <span className="block text-[10px] text-[var(--text2)]">hipotético</span>
+                  )}
+                </td>
                 <td className="text-xs" style={{ color: pnlColor }}>
                   {pnlText}
+                  {hasHypo && (
+                    <span className="block text-[10px] text-[var(--text2)]">hipotético</span>
+                  )}
                 </td>
                 <td>
                   {x.status !== "expired" ? (

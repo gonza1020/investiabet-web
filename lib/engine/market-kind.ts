@@ -39,9 +39,26 @@ export function scoreLabelsForSport(sport?: string): {
   return { home: "Goles local", away: "Goles visit." };
 }
 
+function effectiveScores(signal: EngineSignal): {
+  score_home?: number;
+  score_away?: number;
+} {
+  if (
+    signal.status === "expired" &&
+    signal.hypothetical_score_home != null &&
+    signal.hypothetical_score_away != null
+  ) {
+    return {
+      score_home: signal.hypothetical_score_home,
+      score_away: signal.hypothetical_score_away,
+    };
+  }
+  return { score_home: signal.score_home, score_away: signal.score_away };
+}
+
 export function formatSignalScore(signal: EngineSignal): string {
   const kind = detectMarketKind(signal.market);
-  const { score_home: sh, score_away: sa } = signal;
+  const { score_home: sh, score_away: sa } = effectiveScores(signal);
 
   if (sh == null || sa == null) {
     if (kind === "btts" && signal.status && signal.status !== "pending") {

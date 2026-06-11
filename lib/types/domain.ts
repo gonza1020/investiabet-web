@@ -190,10 +190,8 @@ export type EngineSignalStatus =
 export type EngineSignalPeriod = "all" | "30d";
 export type EngineSignalConfidence = "minimal" | "low" | "medium" | "high";
 
-export interface EngineSignalStatsBlock {
-  /** Señales vigentes (excluye expiradas); base de win rate / ROI */
+export interface EngineSignalOfficialStats {
   total: number;
-  /** Historial completo del período, incluye expiradas */
   detected: number;
   expired: number;
   resolved: number;
@@ -205,11 +203,28 @@ export interface EngineSignalStatsBlock {
   confidence: EngineSignalConfidence;
 }
 
+export interface EngineSignalHistoricalStats {
+  total: number;
+  resolved: number;
+  pending: number;
+  pending_hypothetical: number;
+  won: number;
+  win_rate: number;
+  pnl: number;
+  roi: number;
+  confidence: EngineSignalConfidence;
+}
+
+export interface EngineSignalStatsPair {
+  official: EngineSignalOfficialStats;
+  historical: EngineSignalHistoricalStats;
+}
+
 export interface EngineSignalsStatsResponse {
   period: EngineSignalPeriod;
-  gold_stats: EngineSignalStatsBlock;
-  sure_stats: EngineSignalStatsBlock;
-  combined_stats: EngineSignalStatsBlock;
+  gold_stats: EngineSignalStatsPair;
+  sure_stats: EngineSignalStatsPair;
+  combined_stats: EngineSignalStatsPair;
 }
 
 export interface EngineSignal {
@@ -234,6 +249,12 @@ export interface EngineSignal {
   pnl?: number;
   result_reason?: string;
   resolution_source?: "auto" | "manual";
+  hypothetical_status?: EngineSignalStatus;
+  hypothetical_pnl?: number;
+  hypothetical_score_home?: number;
+  hypothetical_score_away?: number;
+  hypothetical_resulted_at?: string;
+  hypothetical_result_reason?: string;
 }
 
 export interface EngineSignalSuggestResultResponse extends ApiOkResponse {
