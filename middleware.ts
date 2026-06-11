@@ -4,7 +4,7 @@ import { SESSION_COOKIE } from "@/lib/auth/constants";
 
 const PUBLIC = ["/login", "/premium"];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {

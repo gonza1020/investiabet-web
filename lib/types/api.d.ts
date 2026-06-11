@@ -518,15 +518,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/": {
+    "/api/admin/engine-signals/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Root */
-        get: operations["root__get"];
+        /** Admin Engine Signals Stats */
+        get: operations["admin_engine_signals_stats_api_admin_engine_signals_stats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -535,15 +535,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/login": {
+    "/api/admin/engine-signals": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Login Page */
-        get: operations["login_page_login_get"];
+        /** Admin Engine Signals List */
+        get: operations["admin_engine_signals_list_api_admin_engine_signals_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -552,51 +552,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/stats": {
+    "/api/admin/engine-signals/{signal_id}/suggest-result": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Stats Page */
-        get: operations["stats_page_stats_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Admin Engine Signal Suggest */
+        post: operations["admin_engine_signal_suggest_api_admin_engine_signals__signal_id__suggest_result_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/premium": {
+    "/api/admin/engine-signals/{signal_id}/result": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Premium Page */
-        get: operations["premium_page_premium_get"];
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Admin Page */
-        get: operations["admin_page_admin_get"];
-        put?: never;
-        post?: never;
+        /** Admin Engine Signal Result */
+        post: operations["admin_engine_signal_result_api_admin_engine_signals__signal_id__result_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1307,9 +1290,11 @@ export interface operations {
             };
         };
     };
-    root__get: {
+    admin_engine_signals_stats_api_admin_engine_signals_stats_get: {
         parameters: {
-            query?: never;
+            query?: {
+                period?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1322,14 +1307,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/html": string;
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    login_page_login_get: {
+    admin_engine_signals_list_api_admin_engine_signals_get: {
         parameters: {
-            query?: never;
+            query?: {
+                type?: string | null;
+                status?: string | null;
+                period?: string;
+                limit?: number;
+                offset?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1342,16 +1342,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/html": string;
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    stats_page_stats_get: {
+    admin_engine_signal_suggest_api_admin_engine_signals__signal_id__suggest_result_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                signal_id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1362,16 +1373,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/html": string;
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    premium_page_premium_get: {
+    admin_engine_signal_result_api_admin_engine_signals__signal_id__result_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                signal_id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1382,27 +1404,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/html": string;
+                    "application/json": unknown;
                 };
             };
-        };
-    };
-    admin_page_admin_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/html": string;
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
