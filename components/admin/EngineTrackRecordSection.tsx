@@ -8,8 +8,10 @@ import {
 } from "@/hooks/use-engine-signals";
 import type {
   EngineSignal,
+  EngineSignalHistoricalStats,
+  EngineSignalOfficialStats,
   EngineSignalPeriod,
-  EngineSignalStatsBlock,
+  EngineSignalStatsPair,
   EngineSignalType,
 } from "@/lib/types/domain";
 import { fmtPct } from "@/lib/format";
@@ -20,22 +22,26 @@ const PAGE_SIZE = 25;
 type StatusFilter = "" | "pending" | "resolved" | "expired";
 type TypeFilter = "" | EngineSignalType;
 
-function StatsCard({
-  title,
+function RoiStat({ roi }: { roi: number }) {
+  const color = roi >= 0 ? "var(--teal)" : "var(--red)";
+  return (
+    <div className="font-stat-lg text-stat-lg" style={{ color }}>
+      {fmtPct(roi)}
+    </div>
+  );
+}
+
+function OfficialStatsBlock({
   stats,
   winRateClassName = "",
 }: {
-  title: string;
-  stats?: EngineSignalStatsBlock;
+  stats?: EngineSignalOfficialStats;
   winRateClassName?: string;
 }) {
-  const roi = stats?.roi ?? 0;
-  const roiColor = roi >= 0 ? "var(--teal)" : "var(--red)";
-
   return (
-    <div className="rounded-xl border border-outline-variant bg-surface-container-high p-4">
-      <p className="mb-3 font-data-label text-data-label uppercase text-on-surface-variant">
-        {title}
+    <div className="mb-4 border-b border-outline-variant pb-4">
+      <p className="mb-2 text-xs font-medium uppercase text-on-surface-variant">
+        Recomendaciones vigentes (oficial)
       </p>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -54,8 +60,55 @@ function StatsCard({
         </div>
         <div>
           <span className="text-on-surface-variant">Detectadas</span>
-          <div className="font-stat-lg text-stat-lg">
-            {stats?.detected ?? stats?.total ?? "—"}
+          <div className="font-stat-lg text-stat-lg">{stats?.detected ?? "—"}</div>
+        </div>
+        <div>
+          <span className="text-on-surface-variant">Win rate</span>
+          <div className={`font-stat-lg text-stat-lg ${winRateClassName}`}>
+            {stats ? fmtPct(stats.win_rate) : "—"}
+          </div>
+        </div>
+        <div>
+          <span className="text-on-surface-variant">ROI</span>
+          <RoiStat roi={stats?.roi ?? 0} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HistoricalStatsBlock({
+  stats,
+  winRateClassName = "",
+}: {
+  stats?: EngineSignalHistoricalStats;
+  winRateClassName?: string;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium uppercase text-on-surface-variant">
+        Todas las detecciones (histórico)
+      </p>
+      <p className="mb-2 text-[10px] text-on-surface-variant">
+        Incluye expiradas con resultado hipotético al cierre del partido
+      </p>
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-on-surface-variant">Detectadas</span>
+          <div className="font-stat-lg text-stat-lg">{stats?.total ?? "—"}</div>
+        </div>
+        <div>
+          <span className="text-on-surface-variant">Resueltas</span>
+          <div className="font-stat-lg text-stat-lg">{stats?.resolved ?? "—"}</div>
+        </div>
+        <div>
+          <span className="text-on-surface-variant">Pendientes</span>
+          <div className="font-stat-lg text-stat-lg">{stats?.pending ?? "—"}</div>
+        </div>
+        <div>
+          <span className="text-on-surface-variant">Sin hipotético</span>
+          <div className="font-stat-lg text-stat-lg text-on-surface-variant">
+            {stats?.pending_hypothetical ?? "—"}
           </div>
         </div>
         <div>
@@ -66,11 +119,29 @@ function StatsCard({
         </div>
         <div>
           <span className="text-on-surface-variant">ROI</span>
-          <div className="font-stat-lg text-stat-lg" style={{ color: roiColor }}>
-            {stats ? fmtPct(stats.roi) : "—"}
-          </div>
+          <RoiStat roi={stats?.roi ?? 0} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatsCard({
+  title,
+  stats,
+  winRateClassName = "",
+}: {
+  title: string;
+  stats?: EngineSignalStatsPair;
+  winRateClassName?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-outline-variant bg-surface-container-high p-4">
+      <p className="mb-3 font-data-label text-data-label uppercase text-on-surface-variant">
+        {title}
+      </p>
+      <OfficialStatsBlock stats={stats?.official} winRateClassName={winRateClassName} />
+      <HistoricalStatsBlock stats={stats?.historical} winRateClassName={winRateClassName} />
     </div>
   );
 }
