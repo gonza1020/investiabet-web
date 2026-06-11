@@ -171,16 +171,16 @@ export function AdminPageContent() {
             {settings?.window_hours ?? "—"} hs{settings?.overridden === false ? " (default)" : ""}
           </Badge>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="field max-w-[260px]">
+        <div className="admin-form-grid admin-form-grid--scanner">
+          <div className="field min-w-0">
             <label>Ventana de análisis</label>
-            <select className="w-full" value={effectiveWh} onChange={(e) => setWhHours(e.target.value)}>
+            <select value={effectiveWh} onChange={(e) => setWhHours(e.target.value)}>
               {[24, 48, 72, 120, 168, 240, 336].map((h) => (
                 <option key={h} value={h}>{h} hs</option>
               ))}
             </select>
           </div>
-          <button type="button" className="btn-grad" onClick={saveWindow}>Guardar</button>
+          <button type="button" className="btn-grad w-full sm:w-auto" onClick={saveWindow}>Guardar</button>
         </div>
         <p className="mt-3 text-xs text-on-surface-variant">
           Hasta cuántas horas en el futuro el motor analiza partidos. Se aplica desde el próximo escaneo.
@@ -194,11 +194,20 @@ export function AdminPageContent() {
           <span className="material-symbols-outlined text-secondary">person_add</span>
           <h2 className="font-headline-md text-headline-md">Crear usuario</h2>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="field"><label>Email</label><input type="email" value={nuEmail} onChange={(e) => setNuEmail(e.target.value)} placeholder="usuario@mail.com" /></div>
-          <div className="field"><label>Usuario</label><input value={nuUser} onChange={(e) => setNuUser(e.target.value)} placeholder="nombre de usuario" /></div>
-          <div className="field"><label>Contraseña</label><input value={nuPass} onChange={(e) => setNuPass(e.target.value)} placeholder="vacío = generar una" /></div>
-          <div className="field max-w-[160px]">
+        <div className="admin-form-grid admin-form-grid--create-user">
+          <div className="field min-w-0">
+            <label>Email</label>
+            <input type="email" value={nuEmail} onChange={(e) => setNuEmail(e.target.value)} placeholder="usuario@mail.com" />
+          </div>
+          <div className="field min-w-0">
+            <label>Usuario</label>
+            <input value={nuUser} onChange={(e) => setNuUser(e.target.value)} placeholder="nombre de usuario" />
+          </div>
+          <div className="field min-w-0">
+            <label>Contraseña</label>
+            <input value={nuPass} onChange={(e) => setNuPass(e.target.value)} placeholder="vacío = generar una" />
+          </div>
+          <div className="field min-w-0">
             <label>Plan</label>
             <select value={nuPlan} onChange={(e) => setNuPlan(e.target.value)}>
               <option value="free">Free</option>
@@ -206,7 +215,9 @@ export function AdminPageContent() {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <button type="button" className="btn-grad" onClick={createUser}>Crear usuario</button>
+          <button type="button" className="btn-grad w-full sm:col-span-2 lg:col-span-full xl:col-span-1 xl:w-auto" onClick={createUser}>
+            Crear usuario
+          </button>
         </div>
         {nuResult}
       </section>
@@ -216,8 +227,8 @@ export function AdminPageContent() {
           <span className="material-symbols-outlined text-blue">confirmation_number</span>
           <h2 className="font-headline-md text-headline-md">Códigos de invitación</h2>
         </div>
-        <div className="mb-4 flex flex-wrap items-end gap-3">
-          <div className="field max-w-[160px]">
+        <div className="admin-form-grid admin-form-grid--invitation mb-4">
+          <div className="field min-w-0">
             <label>Plan del código</label>
             <select value={invPlan} onChange={(e) => setInvPlan(e.target.value)}>
               <option value="free">Free</option>
@@ -225,11 +236,13 @@ export function AdminPageContent() {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div className="field max-w-[120px]">
+          <div className="field min-w-0">
             <label>Usos máximos</label>
             <input type="number" min={1} value={invMax} onChange={(e) => setInvMax(e.target.value)} />
           </div>
-          <button type="button" className="btn-grad" onClick={genInvitation}>Generar código</button>
+          <button type="button" className="btn-grad w-full sm:col-span-2 lg:col-span-1 lg:w-auto" onClick={genInvitation}>
+            Generar código
+          </button>
         </div>
         {invResult}
         <InvitationsTable invitations={invitations} />

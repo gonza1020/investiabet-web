@@ -96,7 +96,7 @@ export function Topbar({
 
           <button
             type="button"
-            className="navbtn md:hidden"
+            className="navbtn app-topbar-menu-btn"
             aria-label="Abrir menú"
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
@@ -104,7 +104,7 @@ export function Topbar({
             <span className="material-symbols-outlined text-[22px]">menu</span>
           </button>
 
-          <div className="app-topbar-right hidden md:flex">
+          <div className="app-topbar-right">
             {navItems.map((item) => {
               if (item.type === "link") {
                 const cls = item.adminStyle
