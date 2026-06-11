@@ -8,7 +8,7 @@ Documentación de migración: `stakebotweb2/docs/nextjs-migration.md`.
 
 - Node.js 20+
 - npm
-- Backend FastAPI corriendo en `http://localhost:8000` (repo `stakebotweb2`)
+- Backend FastAPI (repo `stakebotweb2`)
 
 ## Setup local
 
@@ -30,20 +30,23 @@ npm run dev
 # → http://localhost:3000
 ```
 
+En desarrollo, las llamadas van a `/api/*` en el mismo origen (`:3000`) y Next las proxea al backend (`API_PROXY_TARGET`). No hace falta CORS para el login local.
+
 **Backend `.env`** (stakebotweb2):
 
 ```env
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 COOKIE_SECURE=false
 ```
 
 **Frontend `.env.local`**:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=
+API_PROXY_TARGET=http://localhost:8000
 ```
 
-Tras login, el token se guarda en `localStorage` (`sb_token`) y una cookie `sb_session=1` para el middleware.
+Tras login, el token se guarda en `localStorage` (`sb_token`) y una cookie `sb_session=1` para el proxy de rutas.
 
 ## Rutas
 
@@ -75,7 +78,7 @@ lib/auth/         # Token Bearer + cookie de sesión
 lib/types/        # Tipos de dominio + OpenAPI generado
 hooks/            # usePicks, useStats, usePlacedPicks
 providers/        # React Query, Auth, Toast
-middleware.ts     # Guard de rutas (cookie sb_session)
+proxy.ts          # Guard de rutas (cookie sb_session)
 ```
 
 ## Fase actual
