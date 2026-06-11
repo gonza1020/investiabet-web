@@ -1,16 +1,18 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
-import { useOverrideEngineSignal } from "@/hooks/use-engine-signals";
-import { suggestEngineSignalResult } from "@/lib/api/admin";
+import {
+  overrideEngineSignalResult,
+  suggestEngineSignalResult,
+} from "@/lib/api/admin";
 import {
   detectMarketKind,
-  marketKindShowsScores,
   marketKindSupportsSuggestion,
   scoreLabelsForSport,
 } from "@/lib/engine/market-kind";
 import type { EngineSignal, EngineSignalStatus } from "@/lib/types/domain";
 import { useToast } from "@/providers/toast-provider";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const RESOLVED: EngineSignalStatus[] = ["won", "lost", "push", "void"];
@@ -20,6 +22,7 @@ const statusLabel: Record<string, string> = {
   lost: "Perdido",
   push: "Push",
   void: "Void",
+  undetermined: "Indeterminado",
 };
 
 interface EngineSignalResultModalProps {
@@ -34,32 +37,27 @@ export function EngineSignalResultModal({
   onClose,
 }: EngineSignalResultModalProps) {
   const { showToast } = useToast();
-  const overrideMutation = useOverrideEngineSignal();
+  const queryClient = useQueryClient();
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [status, setStatus] = useState<EngineSignalStatus>("won");
   const [scoreHome, setScoreHome] = useState("");
   const [scoreAway, setScoreAway] = useState("");
   const [reason, setReason] = useState("");
   const [suggestHint, setSuggestHint] = useState("");
-  const [suggestTone, setSuggestTone] = useState<"teal" | "amber" | "muted">(
-    "teal",
-  );
-  const statusManualRef = useRef(false);
-  const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [suggestColor, setSuggestColor] = useState("var(--teal)");
+  const [statusManual, setStatusManual] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
 
   const marketKind = signal ? detectMarketKind(signal.market) : "h2h";
-  const showScores = marketKindShowsScores(marketKind);
+  const showScores = marketKind !== "outright";
   const labels = scoreLabelsForSport(signal?.sport);
 
   useEffect(() => {
     if (!open || !signal) return;
-    statusManualRef.current = false;
-    setSuggestHint("");
-    setStatus(
-      RESOLVED.includes(signal.status as EngineSignalStatus)
-        ? (signal.status as EngineSignalStatus)
-        : "won",
-    );
+    const initial = RESOLVED.includes(signal.status) ? signal.status : "won";
+    setStatus(initial);
     setScoreHome(
       signal.score_home != null ? String(signal.score_home) : "",
     );
@@ -67,11 +65,20 @@ export function EngineSignalResultModal({
       signal.score_away != null ? String(signal.score_away) : "",
     );
     setReason("");
+    setSuggestHint("");
+    setStatusManual(false);
+    setMsg("");
   }, [open, signal]);
+
+  useEffect(() => {
+    return () => {
+      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    };
+  }, []);
 
   const fetchSuggestion = useCallback(
     async (sh: number, sa: number) => {
-      if (!signal || !marketKindSupportsSuggestion(marketKind)) return;
+      if (!signal) return;
       try {
         const d = await suggestEngineSignalResult(signal.id, {
           score_home: sh,
@@ -79,39 +86,30 @@ export function EngineSignalResultModal({
         });
         if (!d.ok) {
           setSuggestHint(d.error ?? "No se pudo sugerir");
-          setSuggestTone("amber");
+          setSuggestColor("var(--amber)");
           return;
         }
         const sug = d.suggested;
-        const label = statusLabel[sug ?? ""] ?? sug;
         if (sug === "won" || sug === "lost" || sug === "push") {
-          if (!statusManualRef.current) {
-            setStatus(sug);
-          }
-          setSuggestTone("teal");
+          if (!statusManual) setStatus(sug);
           setSuggestHint(
-            `${statusManualRef.current ? "Sugerencia" : "Sugerido"}: ${label}${d.reason ? ` — ${d.reason}` : ""}`,
+            `${statusManual ? "Sugerencia" : "Sugerido"}: ${statusLabel[sug] ?? sug}${d.reason ? ` — ${d.reason}` : ""}`,
           );
+          setSuggestColor("var(--teal)");
         } else {
-          setSuggestTone("muted");
-          setSuggestHint(
-            d.reason ?? "No se pudo determinar automáticamente",
-          );
+          setSuggestHint(d.reason ?? "No se pudo determinar automáticamente");
+          setSuggestColor("var(--text2)");
         }
       } catch {
         setSuggestHint("Error al obtener sugerencia");
-        setSuggestTone("amber");
+        setSuggestColor("var(--amber)");
       }
     },
-    [signal, marketKind],
+    [signal, statusManual],
   );
 
-  const onScoreChange = (field: "home" | "away", value: string) => {
-    if (field === "home") setScoreHome(value);
-    else setScoreAway(value);
-
-    const sh = field === "home" ? value : scoreHome;
-    const sa = field === "away" ? value : scoreAway;
+  const onScoreChange = (sh: string, sa: string) => {
+    if (!marketKindSupportsSuggestion(marketKind)) return;
     if (sh === "" || sa === "") {
       setSuggestHint("");
       return;
@@ -119,96 +117,80 @@ export function EngineSignalResultModal({
     const shN = parseInt(sh, 10);
     const saN = parseInt(sa, 10);
     if (isNaN(shN) || isNaN(saN) || shN < 0 || saN < 0) return;
-
-    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current);
-    suggestTimerRef.current = setTimeout(() => {
-      void fetchSuggestion(shN, saN);
-    }, 400);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    suggestTimer.current = setTimeout(() => fetchSuggestion(shN, saN), 400);
   };
-
-  useEffect(() => {
-    return () => {
-      if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current);
-    };
-  }, []);
-
-  const totalHint =
-    marketKind === "totals" &&
-    scoreHome !== "" &&
-    scoreAway !== "" &&
-    !isNaN(parseInt(scoreHome, 10)) &&
-    !isNaN(parseInt(scoreAway, 10))
-      ? `Total: ${parseInt(scoreHome, 10) + parseInt(scoreAway, 10)}`
-      : null;
 
   const save = async () => {
     if (!signal) return;
-
+    setSaving(true);
+    setMsg("");
     const body: {
       status: EngineSignalStatus;
       score_home?: number;
       score_away?: number;
       reason?: string;
-    } = {
-      status,
-      reason: reason.trim() || undefined,
-    };
-
+    } = { status };
+    if (reason.trim()) body.reason = reason.trim();
     if (scoreHome !== "" && scoreAway !== "") {
       body.score_home = parseInt(scoreHome, 10);
       body.score_away = parseInt(scoreAway, 10);
     }
-
-    try {
-      const d = await overrideMutation.mutateAsync({ id: signal.id, ...body });
-      if (d.ok) {
-        showToast("✓ Resultado actualizado");
-        onClose();
-      } else {
-        showToast(`✗ ${d.error ?? "Error"}`, true);
-      }
-    } catch {
-      showToast("✗ Error al guardar", true);
+    const d = await overrideEngineSignalResult(signal.id, body);
+    setSaving(false);
+    if (d.ok) {
+      showToast("✓ Resultado actualizado");
+      void queryClient.invalidateQueries({
+        queryKey: ["admin", "engine-signals"],
+      });
+      onClose();
+    } else {
+      setMsg(d.error ?? "Error al guardar");
     }
   };
 
-  const eventLabel = signal?.event || (signal ? `Señal #${signal.id}` : "");
+  const totalHint =
+    marketKind === "totals" && scoreHome !== "" && scoreAway !== ""
+      ? `Total: ${parseInt(scoreHome, 10) + parseInt(scoreAway, 10)}`
+      : "";
+
+  if (!signal) return null;
 
   return (
-    <Modal open={open} onClose={onClose} maxWidth="28rem">
-      <h3 className="mb-4 font-headline-md text-headline-md">Corregir resultado</h3>
-      <p className="mb-2 text-sm text-on-surface-variant">{eventLabel}</p>
-
-      {signal && (
-        <div className="mb-4 rounded-lg border border-outline-variant bg-surface-container-high p-3 text-xs text-on-surface-variant">
-          <strong>{signal.pick_team ?? "—"}</strong>
-          {signal.market && <> · {signal.market}</>}
-          {marketKind === "totals" && signal.total_point != null && (
-            <>
-              <br />
-              Línea: <strong>{signal.total_point}</strong>
-            </>
-          )}
-          {marketKind === "spreads" && signal.handicap_point != null && (
-            <>
-              <br />
-              Hándicap:{" "}
-              <strong>
-                {signal.handicap_point >= 0 ? "+" : ""}
-                {signal.handicap_point}
-              </strong>
-            </>
-          )}
-        </div>
-      )}
+    <Modal open={open} onClose={onClose} maxWidth="440px">
+      <div className="mb-4 text-base font-semibold text-violet">
+        Corregir resultado
+      </div>
+      <p className="mb-3 text-sm text-on-surface-variant">
+        {signal.event ?? `Señal #${signal.id}`}
+      </p>
+      <div className="mb-4 rounded-lg border border-outline-variant bg-surface-container-high p-3 text-sm">
+        <strong>{signal.pick_team ?? "—"}</strong>
+        {signal.market && <> · {signal.market}</>}
+        {marketKind === "totals" && signal.total_point != null && (
+          <>
+            <br />
+            Línea: <strong>{signal.total_point}</strong>
+          </>
+        )}
+        {marketKind === "spreads" && signal.handicap_point != null && (
+          <>
+            <br />
+            Hándicap:{" "}
+            <strong>
+              {signal.handicap_point >= 0 ? "+" : ""}
+              {signal.handicap_point}
+            </strong>
+          </>
+        )}
+      </div>
 
       <div className="field mb-3">
         <label>Estado</label>
         <select
-          className="w-full"
           value={status}
           onChange={(e) => {
-            statusManualRef.current = true;
+            setStatusManual(true);
             setStatus(e.target.value as EngineSignalStatus);
           }}
         >
@@ -221,22 +203,28 @@ export function EngineSignalResultModal({
 
       {showScores && (
         <div className="mb-2 flex gap-3">
-          <div className="field">
+          <div className="field flex-1">
             <label>{labels.home}</label>
             <input
               type="number"
               min={0}
               value={scoreHome}
-              onChange={(e) => onScoreChange("home", e.target.value)}
+              onChange={(e) => {
+                setScoreHome(e.target.value);
+                onScoreChange(e.target.value, scoreAway);
+              }}
             />
           </div>
-          <div className="field">
+          <div className="field flex-1">
             <label>{labels.away}</label>
             <input
               type="number"
               min={0}
               value={scoreAway}
-              onChange={(e) => onScoreChange("away", e.target.value)}
+              onChange={(e) => {
+                setScoreAway(e.target.value);
+                onScoreChange(scoreHome, e.target.value);
+              }}
             />
           </div>
         </div>
@@ -245,19 +233,8 @@ export function EngineSignalResultModal({
       {totalHint && (
         <p className="mb-2 text-xs text-on-surface-variant">{totalHint}</p>
       )}
-
       {suggestHint && (
-        <p
-          className="mb-3 text-xs"
-          style={{
-            color:
-              suggestTone === "teal"
-                ? "var(--teal)"
-                : suggestTone === "amber"
-                  ? "var(--amber)"
-                  : "var(--text2)",
-          }}
-        >
+        <p className="mb-3 text-xs" style={{ color: suggestColor }}>
           {suggestHint}
         </p>
       )}
@@ -272,19 +249,22 @@ export function EngineSignalResultModal({
         />
       </div>
 
-      <div className="flex justify-end gap-3">
-        <button type="button" className="btn" onClick={onClose}>
+      <div className="flex gap-3 justify-end">
+        <button type="button" className="btn" onClick={onClose} disabled={saving}>
           Cancelar
         </button>
         <button
           type="button"
           className="btn-grad"
-          disabled={overrideMutation.isPending}
           onClick={save}
+          disabled={saving}
         >
-          {overrideMutation.isPending ? "Guardando…" : "Guardar"}
+          {saving ? "Guardando…" : "Guardar"}
         </button>
       </div>
+      {msg && (
+        <div className="mt-2 text-center text-xs text-[var(--red)]">{msg}</div>
+      )}
     </Modal>
   );
 }

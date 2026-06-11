@@ -5,11 +5,11 @@ import type {
   ApiOkResponse,
   EngineSignalOverrideResultResponse,
   EngineSignalPeriod,
+  EngineSignalsListResponse,
+  EngineSignalsStatsResponse,
   EngineSignalStatus,
   EngineSignalSuggestResultResponse,
   EngineSignalType,
-  EngineSignalsListResponse,
-  EngineSignalsStatsResponse,
   Invitation,
 } from "@/lib/types/domain";
 
@@ -88,40 +88,36 @@ export async function getEngineSignalStats(
   );
 }
 
-export interface GetEngineSignalsParams {
+export async function getEngineSignals(params: {
   period?: EngineSignalPeriod;
   type?: EngineSignalType;
   status?: "pending" | "resolved" | "expired";
   limit?: number;
   offset?: number;
-}
-
-export async function getEngineSignals(
-  params: GetEngineSignalsParams = {},
-): Promise<EngineSignalsListResponse> {
-  const search = new URLSearchParams();
-  search.set("period", params.period ?? "all");
-  if (params.type) search.set("type", params.type);
-  if (params.status) search.set("status", params.status);
-  if (params.limit != null) search.set("limit", String(params.limit));
-  if (params.offset != null) search.set("offset", String(params.offset));
+}): Promise<EngineSignalsListResponse> {
+  const qs = new URLSearchParams();
+  qs.set("period", params.period ?? "all");
+  if (params.type) qs.set("type", params.type);
+  if (params.status) qs.set("status", params.status);
+  qs.set("limit", String(params.limit ?? 50));
+  qs.set("offset", String(params.offset ?? 0));
   return apiFetch<EngineSignalsListResponse>(
-    `/api/admin/engine-signals?${search.toString()}`,
+    `/api/admin/engine-signals?${qs.toString()}`,
   );
 }
 
 export async function suggestEngineSignalResult(
-  id: number,
+  signalId: number,
   body: { score_home: number; score_away: number },
 ): Promise<EngineSignalSuggestResultResponse> {
-  return apiFetch(`/api/admin/engine-signals/${id}/suggest-result`, {
+  return apiFetch(`/api/admin/engine-signals/${signalId}/suggest-result`, {
     method: "POST",
     body: JSON.stringify(body),
   });
 }
 
 export async function overrideEngineSignalResult(
-  id: number,
+  signalId: number,
   body: {
     status: EngineSignalStatus;
     score_home?: number;
@@ -129,7 +125,7 @@ export async function overrideEngineSignalResult(
     reason?: string;
   },
 ): Promise<EngineSignalOverrideResultResponse> {
-  return apiFetch(`/api/admin/engine-signals/${id}/result`, {
+  return apiFetch(`/api/admin/engine-signals/${signalId}/result`, {
     method: "POST",
     body: JSON.stringify(body),
   });
