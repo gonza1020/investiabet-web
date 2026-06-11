@@ -369,7 +369,7 @@ function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period;
   return (
     <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
       <KpiCard label="ROI (crecimiento)" value={fmtPct(growthRoi)} color={(growthRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`sobre tu capital inicial · yield ${fmtPct(stats.roi)}`} bar={undefined} />
-      <KpiCard label="% de aciertos" value={`${fmt(wr, 1)}%`} color={wr >= 60 ? "var(--teal)" : wr >= 50 ? "var(--blue)" : wr >= 40 ? "var(--amber)" : "var(--red)"} sub={`${stats.won ?? 0} ✓ · ${stats.lost ?? 0} ✗ · ${stats.cashouts ?? 0} 💸`} bar={wr} />
+      <KpiCard label="% de aciertos" value={`${fmt(wr, 1)}%`} color={wr >= 60 ? "var(--teal)" : wr >= 50 ? "var(--blue)" : wr >= 40 ? "var(--amber)" : "var(--red)"} sub={`${stats.won ?? 0} ✓ · ${stats.lost ?? 0} ✗ · ${stats.cashouts ?? 0} 💸 · ${stats.voids ?? 0} —`} bar={wr} />
       <KpiCard label="Ganancia neta" value={fmtUSD(stats.pnl_total, "ARS", true)} color={(stats.pnl_total ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub="total ganado o perdido" />
       <KpiCard label="Rendimiento diario" value={fmtPct(dailyRoi)} color={(dailyRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`compuesto · ${periodDays} día(s)`} />
     </div>

@@ -101,6 +101,7 @@ export interface PeriodStats {
   won?: number;
   lost?: number;
   cashouts?: number;
+  voids?: number;
   win_rate?: number;
   roi?: number;
   growth_roi?: number;
