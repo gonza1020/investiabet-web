@@ -108,6 +108,7 @@ export interface PeriodStats {
   pnl_total?: number;
   staked_pending?: number;
   staked_resolved?: number;
+  staked_evaluable?: number;
   gold_stats?: StatsBreakdown;
   sure_stats?: StatsBreakdown;
   value_stats?: StatsBreakdown;
