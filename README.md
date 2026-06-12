@@ -7,7 +7,7 @@ Documentación de migración: `stakebotweb2/docs/nextjs-migration.md`.
 ## Requisitos
 
 - Node.js 20+
-- npm
+- pnpm 11+ (`corepack enable` o `npm install -g pnpm`)
 - Backend FastAPI (repo `stakebotweb2`)
 
 ## Setup local
@@ -24,9 +24,9 @@ uv run python main.py
 **Terminal 2 — Frontend** (`investiabet-web`):
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env.local
-npm run dev
+pnpm dev
 # → http://localhost:3000
 ```
 
@@ -62,11 +62,11 @@ Tras login, el token se guarda en `localStorage` (`sb_token`) y una cookie `sb_s
 
 | Comando | Descripción |
 |---------|-------------|
-| `npm run dev` | Servidor de desarrollo en `:3000` |
-| `npm run build` | Build de producción |
-| `npm run start` | Servidor de producción |
-| `npm run lint` | ESLint |
-| `npm run generate:api` | Regenera `lib/types/api.d.ts` desde OpenAPI |
+| `pnpm dev` | Servidor de desarrollo en `:3000` |
+| `pnpm build` | Build de producción |
+| `pnpm start` | Servidor de producción |
+| `pnpm lint` | ESLint |
+| `pnpm generate:api` | Regenera `lib/types/api.d.ts` desde OpenAPI |
 
 ## Estructura
 
@@ -98,5 +98,5 @@ middleware.ts     # Guard de rutas (cookie sb_session)
 Con el backend levantado:
 
 ```bash
-npm run generate:api
+pnpm generate:api
 ```
