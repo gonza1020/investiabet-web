@@ -1,4 +1,4 @@
-import type { AppPage } from "@/components/layout/Topbar";
+import type { AppPage } from "@/components/layout/app-page";
 
 export interface NavLinkItem {
   type: "link";
@@ -11,36 +11,25 @@ export interface NavLinkItem {
 
 export interface NavButtonItem {
   type: "button";
-  action: "howto" | "profile" | "scan" | "logout";
+  action: "howto" | "profile";
   icon: string;
   label: string;
-  scanningLabel?: string;
 }
 
-export type NavItem = NavLinkItem | NavButtonItem;
+export type SidebarNavItem = NavLinkItem | NavButtonItem;
 
-export function navClass(page: AppPage, id: AppPage): string {
-  if (id === page) return "navbtn navbtn-active";
-  return "navbtn";
+export function sidebarLinkClass(page: AppPage, id: AppPage, adminStyle?: boolean): string {
+  const base = "sidebar-link";
+  if (page !== id) return base;
+  return adminStyle ? `${base} sidebar-link-admin-active` : `${base} sidebar-link-active`;
 }
 
-export function buildNavItems(page: AppPage, userPlan: string, showScan: boolean): NavItem[] {
-  const items: NavItem[] = [
+export function buildSidebarNavItems(userPlan: string): SidebarNavItem[] {
+  const items: SidebarNavItem[] = [
     { type: "link", href: "/", page: "picks", icon: "monitoring", label: "Picks" },
     { type: "link", href: "/stats", page: "stats", icon: "query_stats", label: "Estadísticas" },
-    { type: "button", action: "howto", icon: "rocket_launch", label: "Cómo usar" },
-    { type: "button", action: "profile", icon: "settings", label: "Perfil" },
+    { type: "button", action: "profile", icon: "person", label: "Perfil" },
   ];
-
-  if (showScan) {
-    items.push({
-      type: "button",
-      action: "scan",
-      icon: "refresh",
-      label: "Escanear",
-      scanningLabel: "Escaneando…",
-    });
-  }
 
   if (userPlan === "admin") {
     items.push({
@@ -53,7 +42,12 @@ export function buildNavItems(page: AppPage, userPlan: string, showScan: boolean
     });
   }
 
-  items.push({ type: "button", action: "logout", icon: "logout", label: "Cerrar sesión" });
-
   return items;
 }
+
+export const HOWTO_NAV_ITEM: NavButtonItem = {
+  type: "button",
+  action: "howto",
+  icon: "rocket_launch",
+  label: "Cómo usar",
+};
