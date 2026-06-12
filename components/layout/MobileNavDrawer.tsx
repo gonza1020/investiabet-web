@@ -1,55 +1,50 @@
 "use client";
 
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Badge } from "@/components/ui/Badge";
 import {
-  buildNavItems,
-  navClass,
-  type NavItem,
+  buildSidebarNavItems,
+  HOWTO_NAV_ITEM,
+  sidebarLinkClass,
+  type SidebarNavItem,
 } from "@/components/layout/nav-config";
-import type { AppPage } from "@/components/layout/Topbar";
+import type { AppPage } from "@/components/layout/app-page";
+import type { User } from "@/lib/types/domain";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import Link from "next/link";
 import { useEffect } from "react";
+
+const planLabels: Record<string, string> = {
+  free: "Free",
+  premium: "Premium",
+  admin: "Admin",
+};
+
+const planVariants: Record<string, "gray" | "teal" | "violet"> = {
+  free: "gray",
+  premium: "teal",
+  admin: "violet",
+};
 
 interface MobileNavDrawerProps {
   open: boolean;
   onClose: () => void;
   page: AppPage;
-  userPlan: string;
-  showScan: boolean;
-  scanning: boolean;
+  user: User;
   onHowtoOpen: () => void;
   onProfileOpen: () => void;
-  onScan: () => void;
-  onLogout: () => void;
 }
 
 function handleButtonAction(
-  item: NavItem,
+  item: SidebarNavItem,
   handlers: {
-    onHowtoOpen: () => void;
     onProfileOpen: () => void;
-    onScan: () => void;
-    onLogout: () => void;
     onClose: () => void;
-  }
+  },
 ) {
   if (item.type !== "button") return;
-  switch (item.action) {
-    case "howto":
-      handlers.onHowtoOpen();
-      handlers.onClose();
-      break;
-    case "profile":
-      handlers.onProfileOpen();
-      handlers.onClose();
-      break;
-    case "scan":
-      handlers.onScan();
-      break;
-    case "logout":
-      handlers.onLogout();
-      break;
+  if (item.action === "profile") {
+    handlers.onProfileOpen();
+    handlers.onClose();
   }
 }
 
@@ -57,16 +52,12 @@ export function MobileNavDrawer({
   open,
   onClose,
   page,
-  userPlan,
-  showScan,
-  scanning,
+  user,
   onHowtoOpen,
   onProfileOpen,
-  onScan,
-  onLogout,
 }: MobileNavDrawerProps) {
   const isDesktop = useIsDesktop();
-  const items = buildNavItems(page, userPlan, showScan);
+  const items = buildSidebarNavItems(user.plan);
 
   useEffect(() => {
     if (isDesktop && open) onClose();
@@ -88,20 +79,23 @@ export function MobileNavDrawer({
 
   if (!open) return null;
 
-  const buttonHandlers = { onHowtoOpen, onProfileOpen, onScan, onLogout, onClose };
+  const buttonHandlers = { onProfileOpen, onClose };
 
   return (
     <div className="mobile-nav-overlay" onClick={onClose} role="presentation">
-      <nav
+      <aside
         className="mobile-nav-drawer"
         aria-label="Menú de navegación"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mobile-nav-header">
-          <span className="font-semibold text-on-surface">Menú</span>
+        <div className="app-sidebar-brand">
+          <span className="app-sidebar-title">InvestiaBet</span>
+          <Badge variant={planVariants[user.plan] ?? "gray"}>
+            {planLabels[user.plan] ?? user.plan}
+          </Badge>
           <button
             type="button"
-            className="navbtn"
+            className="mobile-nav-close-btn navbtn"
             aria-label="Cerrar menú"
             onClick={onClose}
           >
@@ -109,54 +103,50 @@ export function MobileNavDrawer({
           </button>
         </div>
 
-        <div className="mobile-nav-items">
+        <nav className="app-sidebar-nav">
           {items.map((item) => {
             if (item.type === "link") {
-              const cls = item.adminStyle
-                ? `navbtn navbtn-admin w-full justify-start ${page === item.page ? "navbtn-active" : ""}`
-                : `${navClass(page, item.page)} w-full justify-start`;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={cls}
+                  className={sidebarLinkClass(page, item.page, item.adminStyle)}
                   onClick={onClose}
                 >
-                  <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                  {item.label}
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span>{item.label}</span>
                 </Link>
               );
             }
-
-            const label =
-              item.action === "scan" && scanning
-                ? (item.scanningLabel ?? item.label)
-                : item.label;
 
             return (
               <button
                 key={item.action}
                 type="button"
-                className="navbtn w-full justify-start"
-                disabled={item.action === "scan" && scanning}
+                className="sidebar-link w-full text-left"
                 onClick={() => handleButtonAction(item, buttonHandlers)}
               >
-                <span
-                  className={`material-symbols-outlined text-[18px]${item.action === "scan" && scanning ? " spin" : ""}`}
-                >
-                  {item.icon}
-                </span>
-                {label}
+                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                <span>{item.label}</span>
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="mobile-nav-footer">
-          <span className="text-xs text-on-surface-variant">Tema</span>
-          <ThemeToggle />
+        <div className="app-sidebar-footer">
+          <button
+            type="button"
+            className="sidebar-link w-full text-left"
+            onClick={() => {
+              onHowtoOpen();
+              onClose();
+            }}
+          >
+            <span className="material-symbols-outlined text-[20px]">{HOWTO_NAV_ITEM.icon}</span>
+            <span>{HOWTO_NAV_ITEM.label}</span>
+          </button>
         </div>
-      </nav>
+      </aside>
     </div>
   );
 }

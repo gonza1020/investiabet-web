@@ -1,51 +1,33 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
-import { buildNavItems, navClass } from "@/components/layout/nav-config";
+import type { AppPage } from "@/components/layout/app-page";
 import { logout } from "@/lib/api/auth";
 import { triggerScan } from "@/lib/api/picks";
 import type { User } from "@/lib/types/domain";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type AppPage = "picks" | "stats" | "admin";
+export type { AppPage } from "@/components/layout/app-page";
 
 interface TopbarProps {
   page: AppPage;
   user: User;
   scanBadge?: { className: string; text: string };
   lastScan?: string;
-  onProfileOpen: () => void;
-  onHowtoOpen: () => void;
   onScanComplete?: () => void;
+  onMenuOpen?: () => void;
 }
-
-const planLabels: Record<string, string> = {
-  free: "Free",
-  premium: "Premium",
-  admin: "Admin",
-};
-
-const planVariants: Record<string, "gray" | "teal" | "violet"> = {
-  free: "gray",
-  premium: "teal",
-  admin: "violet",
-};
 
 export function Topbar({
   page,
   user,
   scanBadge,
   lastScan,
-  onProfileOpen,
-  onHowtoOpen,
   onScanComplete,
+  onMenuOpen,
 }: TopbarProps) {
   const barRef = useRef<HTMLElement>(null);
   const [scanning, setScanning] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const syncHeight = useCallback(() => {
     const bar = barRef.current;
@@ -71,112 +53,61 @@ export function Topbar({
   };
 
   const showScan = user.plan !== "free";
-  const navItems = buildNavItems(page, user.plan, showScan);
 
   return (
-    <>
-      <header className="app-topbar" id="app-topbar" ref={barRef}>
-        <div className="app-topbar-inner">
-          <div className="app-topbar-left">
-            <span className="app-topbar-brand">InvestiaBet</span>
-            <Badge variant={planVariants[user.plan] ?? "gray"}>
-              {planLabels[user.plan] ?? user.plan}
-            </Badge>
-            {page === "picks" && scanBadge && (
-              <>
-                <span className={scanBadge.className}>{scanBadge.text}</span>
-                {lastScan && (
-                  <span className="hidden text-xs text-on-surface-variant lg:inline">
-                    {lastScan}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+    <header className="app-topbar" id="app-topbar" ref={barRef}>
+      <div className="app-topbar-inner">
+        <button
+          type="button"
+          className="app-topbar-menu-btn navbtn"
+          aria-label="Abrir menú"
+          onClick={onMenuOpen}
+        >
+          <span className="material-symbols-outlined text-[22px]">menu</span>
+        </button>
 
+        {page === "picks" && scanBadge && (
+          <div className="app-topbar-status">
+            <div className="app-topbar-status-row">
+              <span
+                className={`app-topbar-status-dot${scanBadge.className.includes("b-amber") ? " app-topbar-status-dot-pending" : ""}`}
+              />
+              <span className="app-topbar-status-label">
+                {scanBadge.text.replace(/^●\s*/, "")}
+              </span>
+            </div>
+            {lastScan && <span className="app-topbar-last-scan">{lastScan}</span>}
+          </div>
+        )}
+
+        <div className="app-topbar-actions">
+          {showScan && (
+            <button
+              type="button"
+              className="app-topbar-action-btn"
+              disabled={scanning}
+              onClick={handleScan}
+            >
+              <span
+                className={`material-symbols-outlined text-[20px]${scanning ? " spin" : ""}`}
+              >
+                refresh
+              </span>
+              <span>{scanning ? "Escaneando…" : "Escanear"}</span>
+            </button>
+          )}
+          <ThemeToggle className="app-topbar-action-btn" />
           <button
             type="button"
-            className="navbtn app-topbar-menu-btn"
-            aria-label="Abrir menú"
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen(true)}
+            className="app-topbar-logout-btn"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+            onClick={() => logout()}
           >
-            <span className="material-symbols-outlined text-[22px]">menu</span>
+            <span className="material-symbols-outlined text-[24px]">logout</span>
           </button>
-
-          <div className="app-topbar-right">
-            {navItems.map((item) => {
-              if (item.type === "link") {
-                const cls = item.adminStyle
-                  ? `navbtn navbtn-admin ${page === item.page ? "navbtn-active" : ""}`
-                  : navClass(page, item.page);
-                return (
-                  <Link key={item.href} href={item.href} className={cls}>
-                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </Link>
-                );
-              }
-
-              if (item.action === "logout") {
-                return (
-                  <button
-                    key={item.action}
-                    type="button"
-                    className="navbtn"
-                    onClick={() => logout()}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                  </button>
-                );
-              }
-
-              const onClick =
-                item.action === "howto"
-                  ? onHowtoOpen
-                  : item.action === "profile"
-                    ? onProfileOpen
-                    : handleScan;
-
-              const label =
-                item.action === "scan" && scanning
-                  ? (item.scanningLabel ?? item.label)
-                  : item.label;
-
-              return (
-                <button
-                  key={item.action}
-                  type="button"
-                  className="navbtn"
-                  disabled={item.action === "scan" && scanning}
-                  onClick={onClick}
-                >
-                  <span
-                    className={`material-symbols-outlined text-[18px]${item.action === "scan" && scanning ? " spin" : ""}`}
-                  >
-                    {item.icon}
-                  </span>
-                  <span className="hidden sm:inline">{label}</span>
-                </button>
-              );
-            })}
-            <ThemeToggle />
-          </div>
         </div>
-      </header>
-
-      <MobileNavDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        page={page}
-        userPlan={user.plan}
-        showScan={showScan}
-        scanning={scanning}
-        onHowtoOpen={onHowtoOpen}
-        onProfileOpen={onProfileOpen}
-        onScan={handleScan}
-        onLogout={() => logout()}
-      />
-    </>
+      </div>
+    </header>
   );
 }

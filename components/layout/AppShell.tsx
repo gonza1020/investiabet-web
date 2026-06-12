@@ -1,7 +1,9 @@
 "use client";
 
 import { HowtoModal } from "@/components/layout/HowtoModal";
+import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
 import { ProfileModal } from "@/components/layout/ProfileModal";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar, type AppPage } from "@/components/layout/Topbar";
 import { useUser } from "@/providers/auth-provider";
 import type { User } from "@/lib/types/domain";
@@ -27,10 +29,11 @@ export function AppShell({
   const { user, isLoading, refreshUser } = useUser();
   const [profileOpen, setProfileOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    document.body.classList.add("has-app-topbar");
-    return () => document.body.classList.remove("has-app-topbar");
+    document.body.classList.add("has-app-shell");
+    return () => document.body.classList.remove("has-app-shell");
   }, []);
 
   const handleSaved = useCallback(
@@ -52,16 +55,36 @@ export function AppShell({
 
   return (
     <>
-      <Topbar
+      <div className="app-shell">
+        <Sidebar
+          page={page}
+          user={user}
+          onHowtoOpen={() => setHowtoOpen(true)}
+          onProfileOpen={() => setProfileOpen(true)}
+        />
+
+        <div className="app-shell-main">
+          <Topbar
+            page={page}
+            user={user}
+            scanBadge={scanBadge}
+            lastScan={lastScan}
+            onScanComplete={onScanComplete}
+            onMenuOpen={() => setDrawerOpen(true)}
+          />
+          <div className="app-shell-content custom-scrollbar">{children}</div>
+        </div>
+      </div>
+
+      <MobileNavDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
         page={page}
         user={user}
-        scanBadge={scanBadge}
-        lastScan={lastScan}
-        onProfileOpen={() => setProfileOpen(true)}
         onHowtoOpen={() => setHowtoOpen(true)}
-        onScanComplete={onScanComplete}
+        onProfileOpen={() => setProfileOpen(true)}
       />
-      {children}
+
       <ProfileModal
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
