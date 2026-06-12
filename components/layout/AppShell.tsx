@@ -5,6 +5,7 @@ import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
 import { ProfileModal } from "@/components/layout/ProfileModal";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar, type AppPage } from "@/components/layout/Topbar";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { useUser } from "@/providers/auth-provider";
 import type { User } from "@/lib/types/domain";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -30,6 +31,15 @@ export function AppShell({
   const [profileOpen, setProfileOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebarCollapsed();
+
+  const handleMenuClick = useCallback(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      toggleSidebar();
+      return;
+    }
+    setDrawerOpen((open) => !open);
+  }, [toggleSidebar]);
 
   useEffect(() => {
     document.body.classList.add("has-app-shell");
@@ -56,21 +66,24 @@ export function AppShell({
   return (
     <>
       <div className="app-shell">
-        <Sidebar
+        <Topbar
           page={page}
           user={user}
-          onHowtoOpen={() => setHowtoOpen(true)}
-          onProfileOpen={() => setProfileOpen(true)}
+          scanBadge={scanBadge}
+          lastScan={lastScan}
+          onScanComplete={onScanComplete}
+          sidebarCollapsed={sidebarCollapsed}
+          mobileMenuOpen={drawerOpen}
+          onMenuClick={handleMenuClick}
         />
 
-        <div className="app-shell-main">
-          <Topbar
+        <div className="app-shell-body">
+          <Sidebar
             page={page}
-            user={user}
-            scanBadge={scanBadge}
-            lastScan={lastScan}
-            onScanComplete={onScanComplete}
-            onMenuOpen={() => setDrawerOpen(true)}
+            userPlan={user.plan}
+            collapsed={sidebarCollapsed}
+            onHowtoOpen={() => setHowtoOpen(true)}
+            onProfileOpen={() => setProfileOpen(true)}
           />
           <div className="app-shell-content custom-scrollbar">{children}</div>
         </div>

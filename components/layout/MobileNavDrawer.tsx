@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import {
   buildSidebarNavItems,
   HOWTO_NAV_ITEM,
@@ -12,18 +11,6 @@ import type { User } from "@/lib/types/domain";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import Link from "next/link";
 import { useEffect } from "react";
-
-const planLabels: Record<string, string> = {
-  free: "Free",
-  premium: "Premium",
-  admin: "Admin",
-};
-
-const planVariants: Record<string, "gray" | "teal" | "violet"> = {
-  free: "gray",
-  premium: "teal",
-  admin: "violet",
-};
 
 interface MobileNavDrawerProps {
   open: boolean;
@@ -88,11 +75,8 @@ export function MobileNavDrawer({
         aria-label="Menú de navegación"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="app-sidebar-brand">
-          <span className="app-sidebar-title">InvestiaBet</span>
-          <Badge variant={planVariants[user.plan] ?? "gray"}>
-            {planLabels[user.plan] ?? user.plan}
-          </Badge>
+        <div className="mobile-nav-header">
+          <span className="font-semibold text-on-surface">Menú</span>
           <button
             type="button"
             className="mobile-nav-close-btn navbtn"
