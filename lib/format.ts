@@ -60,6 +60,17 @@ export function confLabel(l: string | undefined): string {
   return map[l ?? ""] ?? l ?? "";
 }
 
+export function placedPickKey(
+  event: string,
+  pickTeam: string,
+  market?: string,
+): string {
+  const ev = (event ?? "").toLowerCase().trim();
+  const mk = (market ?? "").toLowerCase().trim();
+  const pt = (pickTeam ?? "").toLowerCase().trim();
+  return `${ev}|${mk}|${pt}`;
+}
+
 export function lineKey(equipoPick: string): string | null {
   const ep = (equipoPick || "").trim();
   let m = ep.match(/^(Over|Under)\s+([\d.]+)$/i);

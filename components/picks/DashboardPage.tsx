@@ -10,7 +10,7 @@ import {
 } from "@/components/picks/PickCards";
 import { AppShell } from "@/components/layout/AppShell";
 import { placePick } from "@/lib/api/picks";
-import { fmtPct, fmtUSD } from "@/lib/format";
+import { fmtPct, fmtUSD, placedPickKey } from "@/lib/format";
 import type { Pick } from "@/lib/types/domain";
 import { usePlacedPicks } from "@/hooks/use-placed-picks";
 import { usePicks } from "@/hooks/use-picks";
@@ -82,7 +82,7 @@ export function DashboardPage() {
 
   const handlePlace = useCallback(
     async (pick: Pick, type?: string) => {
-      const key = `${pick.event}|${pick.pick_team}`;
+      const key = placedPickKey(pick.event, pick.pick_team, pick.market);
       setPlacingKey(key);
       try {
         const body = {
@@ -173,8 +173,8 @@ export function DashboardPage() {
     pick,
     currency,
     showStake: pick.stake_usd != null,
-    mark: getMark(pick.event, pick.pick_team),
-    placing: placingKey === `${pick.event}|${pick.pick_team}`,
+    mark: getMark(pick.event, pick.pick_team, pick.market),
+    placing: placingKey === placedPickKey(pick.event, pick.pick_team, pick.market),
     onPlace: () => handlePlace(pick, type),
     onPlaceFree: () => handlePlaceFree(pick),
   });

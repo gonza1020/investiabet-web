@@ -169,7 +169,6 @@ export interface AdminSettings {
 
 export interface PlacedCache {
   exactos: Set<string>;
-  events: Set<string>;
   opuestos: Set<string>;
   ts: number;
 }

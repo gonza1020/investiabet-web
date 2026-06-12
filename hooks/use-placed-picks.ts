@@ -1,7 +1,7 @@
 "use client";
 
 import { getStats } from "@/lib/api/stats";
-import { lineKey } from "@/lib/format";
+import { lineKey, placedPickKey } from "@/lib/format";
 import type { PlacedCache, Pick } from "@/lib/types/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
@@ -18,17 +18,14 @@ function buildPlacedCache(stats: {
     }),
   );
   const exactos = new Set<string>();
-  const events = new Set<string>();
   const opuestos = new Set<string>();
   todos.forEach((p) => {
+    exactos.add(placedPickKey(p.event ?? "", p.pick_team ?? "", p.market));
     const ev = (p.event ?? "").toLowerCase().trim();
-    const ep = (p.pick_team ?? "").toLowerCase().trim();
-    exactos.add(`${ev}|${ep}`);
-    events.add(ev);
     const lk = lineKey(p.pick_team ?? "");
     if (lk) opuestos.add(`${ev}|${lk}`);
   });
-  return { exactos, events, opuestos, ts: ahora };
+  return { exactos, opuestos, ts: ahora };
 }
 
 export function usePlacedPicks() {
@@ -44,15 +41,15 @@ export function usePlacedPicks() {
     [query.data],
   );
 
-  const getMark = (event: string, pickTeam: string) => {
+  const getMark = (event: string, pickTeam: string, market?: string) => {
     if (!cache) return "none" as const;
     const ev = event.toLowerCase().trim();
-    const pick = pickTeam.toLowerCase().trim();
+    const key = placedPickKey(event, pickTeam, market);
     const lk = lineKey(pickTeam);
-    if (cache.exactos.has(`${ev}|${pick}`) || cache.events.has(ev)) {
+    if (cache.exactos.has(key)) {
       return "placed" as const;
     }
-    if (lk && cache.opuestos.has(`${ev}|${lk}`) && !cache.exactos.has(`${ev}|${pick}`)) {
+    if (lk && cache.opuestos.has(`${ev}|${lk}`) && !cache.exactos.has(key)) {
       return "opposite" as const;
     }
     return "none" as const;
