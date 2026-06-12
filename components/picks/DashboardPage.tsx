@@ -11,7 +11,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { placePick } from "@/lib/api/picks";
 import { fmtPct, fmtUSD } from "@/lib/format";
-import type { Pick, PicksResponse } from "@/lib/types/domain";
+import type { Pick } from "@/lib/types/domain";
 import { usePlacedPicks } from "@/hooks/use-placed-picks";
 import { usePicks } from "@/hooks/use-picks";
 import { useUser } from "@/providers/auth-provider";
@@ -19,14 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type SortMode = "fecha" | "ventaja";
-type SportTab =
-  | "todos"
-  | "futbol"
-  | "tenis"
-  | "basquet"
-  | "esports"
-  | "otros"
-  | "discarded_items";
+type SportTab = "todos" | "futbol" | "tenis" | "basquet" | "esports" | "otros";
 
 const SPORT_TABS: { id: SportTab; label: string }[] = [
   { id: "todos", label: "Todos" },
@@ -35,20 +28,23 @@ const SPORT_TABS: { id: SportTab; label: string }[] = [
   { id: "basquet", label: "Básquet" },
   { id: "esports", label: "Esports" },
   { id: "otros", label: "MMA/Béisbol" },
-  { id: "discarded_items", label: "Descartados" },
 ];
 
-function filterBySport(data: PicksResponse, key: SportTab): Pick[] {
-  const all = data.gold_tips ?? data.valid_picks ?? [];
-  if (key === "todos") return all;
-  if (key === "otros") return all.filter((p) => ["MMA", "Béisbol"].includes(p.sport ?? ""));
+function filterBySport(picks: Pick[], key: SportTab): Pick[] {
+  if (key === "todos") return picks;
+  if (key === "otros") return picks.filter((p) => ["MMA", "Béisbol"].includes(p.sport ?? ""));
   const map: Record<string, string> = {
     futbol: "Fútbol",
     tenis: "Tenis",
     basquet: "Básquet",
     esports: "Esports",
   };
-  return all.filter((p) => p.sport === map[key]);
+  return picks.filter((p) => p.sport === map[key]);
+}
+
+function pickKey(p: Pick, i: number): string {
+  if (p.id != null) return String(p.id);
+  return `${p.event}|${p.pick_team}|${p.market ?? ""}|${p.odds_real ?? ""}|${i}`;
 }
 
 export function DashboardPage() {
@@ -61,6 +57,7 @@ export function DashboardPage() {
   const [currentTab, setCurrentTab] = useState<SportTab>("todos");
   const [placingKey, setPlacingKey] = useState<string | null>(null);
   const [bankSub, setBankSub] = useState<{ enJuego: number; disponible: number } | null>(null);
+  const [showDiscarded, setShowDiscarded] = useState(false);
 
   const premium = user?.plan === "premium" || user?.plan === "admin";
 
@@ -134,9 +131,11 @@ export function DashboardPage() {
   const filteredGold = useMemo(() => {
     if (!data) return [];
     const minE = (minEdge ?? 0) / 100;
-    const picks = (data.gold_tips ?? data.valid_picks ?? []).filter((p) => (p.edge ?? 0) >= minE);
+    const picks = filterBySport(data.gold_tips ?? data.valid_picks ?? [], currentTab).filter(
+      (p) => (p.edge ?? 0) >= minE,
+    );
     return sortPicks(picks, sortMode);
-  }, [data, minEdge, sortMode]);
+  }, [data, minEdge, sortMode, currentTab]);
 
   const sureBets = useMemo(
     () => sortPicks(data?.sure_bets ?? [], sortMode),
@@ -165,12 +164,6 @@ export function DashboardPage() {
     () => (data?.futures_picks ?? []).filter((p) => p.discarded),
     [data],
   );
-
-  const tabPicks = useMemo(() => {
-    if (!data) return [];
-    if (currentTab === "discarded_items") return [];
-    return sortPicks(filterBySport(data, currentTab), sortMode);
-  }, [data, currentTab, sortMode]);
 
   const currency = data?.currency ?? "ARS";
   const enJuego = bankSub?.enJuego ?? user?.en_juego ?? 0;
@@ -235,8 +228,8 @@ export function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {livePicks.map((p) => (
-                  <LivePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+                {livePicks.map((p, i) => (
+                  <LivePickCard key={pickKey(p, i)} {...cardProps(p)} />
                 ))}
               </div>
             )}
@@ -250,23 +243,57 @@ export function DashboardPage() {
               <h2 className="font-headline-md text-headline-md">Gold Tips — Mejor valor</h2>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="text-xs text-on-surface-variant">Ordenar:</label>
-              <select className="select" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
-                <option value="fecha">📅 Fecha (más próximos)</option>
-                <option value="ventaja">📈 Ventaja (mejor valor)</option>
-              </select>
-              <label className="text-xs text-on-surface-variant">Ventaja mín.:</label>
-              <select
-                className="select"
-                value={minEdge ?? minEdgeOptions[0] ?? 0}
-                onChange={(e) => setMinEdge(parseInt(e.target.value))}
-              >
-                {minEdgeOptions.map((v, i) => (
-                  <option key={v} value={v}>
-                    {v}%{i === 0 ? " (todas)" : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5">
+                <span className="material-symbols-outlined text-sm text-on-surface-variant">filter_alt</span>
+                <span className="font-data-label text-data-label uppercase text-on-surface-variant">Filtros</span>
+              </div>
+              <div className="relative">
+                <select
+                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
+                  value={currentTab}
+                  onChange={(e) => setCurrentTab(e.target.value as SportTab)}
+                >
+                  {SPORT_TABS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.id === "todos" ? "Todos los deportes" : t.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
+                  expand_more
+                </span>
+              </div>
+              <div className="mx-1 h-6 w-px bg-outline-variant" />
+              <div className="relative">
+                <select
+                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                >
+                  <option value="fecha">Ordenar por fecha</option>
+                  <option value="ventaja">Ordenar por ventaja</option>
+                </select>
+                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
+                  expand_more
+                </span>
+              </div>
+              <div className="mx-1 h-6 w-px bg-outline-variant" />
+              <div className="relative">
+                <select
+                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
+                  value={minEdge ?? minEdgeOptions[0] ?? 0}
+                  onChange={(e) => setMinEdge(parseInt(e.target.value))}
+                >
+                  {minEdgeOptions.map((v, i) => (
+                    <option key={v} value={v}>
+                      Ventaja ≥ {v}%{i === 0 ? " (todas)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
+                  expand_more
+                </span>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -276,13 +303,17 @@ export function DashboardPage() {
                 Calculando picks…
               </div>
             ) : filteredGold.length ? (
-              filteredGold.map((p) => (
-                <ValuePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+              filteredGold.map((p, i) => (
+                <ValuePickCard key={pickKey(p, i)} {...cardProps(p)} />
               ))
             ) : (
               <div className="empty">
                 <span className="empty-icon">📊</span>
-                Sin Gold Tips con ventaja ≥ {minEdge ?? 0}%
+                Sin Gold Tips
+                {currentTab !== "todos"
+                  ? ` de ${SPORT_TABS.find((t) => t.id === currentTab)?.label}`
+                  : ""}{" "}
+                con ventaja ≥ {minEdge ?? 0}%
               </div>
             )}
           </div>
@@ -296,8 +327,8 @@ export function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {sureBets.length ? (
-              sureBets.map((p) => (
-                <SureBetCard key={`${p.event}-${p.pick_team}`} {...cardProps(p, "sure")} />
+              sureBets.map((p, i) => (
+                <SureBetCard key={pickKey(p, i)} {...cardProps(p, "sure")} />
               ))
             ) : (
               <div className="empty">
@@ -320,49 +351,40 @@ export function DashboardPage() {
               </span>
             </div>
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {(futuresActive.length ? futuresActive : futuresRef).map((p) => (
-                <FuturePickCard key={`${p.event}-${p.pick_team}`} {...cardProps(p)} />
+              {(futuresActive.length ? futuresActive : futuresRef).map((p, i) => (
+                <FuturePickCard key={pickKey(p, i)} {...cardProps(p)} />
               ))}
             </div>
           </section>
         )}
 
-        <section>
-          <div className="tabs">
-            {SPORT_TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`tab${currentTab === t.id ? " active" : ""}`}
-                onClick={() => setCurrentTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          {currentTab === "discarded_items" ? (
-            (data?.discarded_picks ?? []).length ? (
+        {(data?.discarded_picks ?? []).length > 0 && (
+          <section className="opacity-70 transition-all duration-500 hover:opacity-100">
+            <button
+              type="button"
+              className="mb-5 flex w-full flex-wrap items-center gap-2 text-left"
+              onClick={() => setShowDiscarded((v) => !v)}
+            >
+              <span className="material-symbols-outlined text-on-surface-variant">block</span>
+              <h2 className="font-headline-md text-headline-md text-on-surface-variant">
+                Descartados / Baja confianza
+              </h2>
+              <span className="text-xs text-on-surface-variant">
+                {(data?.discarded_picks ?? []).length} picks
+              </span>
+              <span className="material-symbols-outlined ml-auto text-on-surface-variant">
+                {showDiscarded ? "expand_less" : "expand_more"}
+              </span>
+            </button>
+            {showDiscarded && (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {(data?.discarded_picks ?? []).map((p) => (
-                  <SkipCard key={`${p.event}-${p.pick_team}`} pick={p} />
+                {(data?.discarded_picks ?? []).map((p, i) => (
+                  <SkipCard key={pickKey(p, i)} pick={p} />
                 ))}
               </div>
-            ) : (
-              <div className="empty">✓ Sin picks descartados.</div>
-            )
-          ) : tabPicks.length ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {tabPicks.map((p) => (
-                <ValuePickCard key={`tab-${p.event}-${p.pick_team}`} {...cardProps(p)} />
-              ))}
-            </div>
-          ) : (
-            <div className="empty">
-              <span className="empty-icon">🔍</span>
-              Sin picks de {currentTab} en las próximas {data?.window_hours ?? 24}hs.
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        )}
       </main>
     </AppShell>
   );
