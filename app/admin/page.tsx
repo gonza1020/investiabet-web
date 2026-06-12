@@ -11,12 +11,17 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user && user.plan !== "admin") {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/login?from=/admin");
+      return;
+    }
+    if (user.plan !== "admin") {
       router.replace("/");
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-on-surface-variant">
         Cargando…
@@ -24,7 +29,7 @@ export default function AdminPage() {
     );
   }
 
-  if (user.plan !== "admin") return null;
+  if (!user || user.plan !== "admin") return null;
 
   return (
     <AppShell page="admin">

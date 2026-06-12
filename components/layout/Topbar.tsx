@@ -1,23 +1,15 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import type { AppPage } from "@/components/layout/app-page";
 import { logout } from "@/lib/api/auth";
 import { triggerScan } from "@/lib/api/picks";
 import type { User } from "@/lib/types/domain";
-import Link from "next/link";
+import { useIsDesktop } from "@/hooks/use-media-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type AppPage = "picks" | "stats" | "admin";
-
-interface TopbarProps {
-  page: AppPage;
-  user: User;
-  scanBadge?: { className: string; text: string };
-  lastScan?: string;
-  onProfileOpen: () => void;
-  onHowtoOpen: () => void;
-  onScanComplete?: () => void;
-}
+export type { AppPage } from "@/components/layout/app-page";
 
 const planLabels: Record<string, string> = {
   free: "Free",
@@ -31,17 +23,30 @@ const planVariants: Record<string, "gray" | "teal" | "violet"> = {
   admin: "violet",
 };
 
+interface TopbarProps {
+  page: AppPage;
+  user: User;
+  scanBadge?: { className: string; text: string };
+  lastScan?: string;
+  onScanComplete?: () => void;
+  sidebarCollapsed?: boolean;
+  mobileMenuOpen?: boolean;
+  onMenuClick?: () => void;
+}
+
 export function Topbar({
   page,
   user,
   scanBadge,
   lastScan,
-  onProfileOpen,
-  onHowtoOpen,
   onScanComplete,
+  sidebarCollapsed = false,
+  mobileMenuOpen = false,
+  onMenuClick,
 }: TopbarProps) {
   const barRef = useRef<HTMLElement>(null);
   const [scanning, setScanning] = useState(false);
+  const isDesktop = useIsDesktop();
 
   const syncHeight = useCallback(() => {
     const bar = barRef.current;
@@ -55,8 +60,6 @@ export function Topbar({
     return () => window.removeEventListener("resize", syncHeight);
   }, [syncHeight, scanBadge, lastScan]);
 
-  const navClass = (id: AppPage) => (id === page ? "navbtn navbtn-active" : "navbtn");
-
   const handleScan = async () => {
     setScanning(true);
     try {
@@ -69,62 +72,75 @@ export function Topbar({
   };
 
   const showScan = user.plan !== "free";
+  const menuOpen = isDesktop ? !sidebarCollapsed : mobileMenuOpen;
+  const menuLabel = menuOpen ? "Cerrar menú" : "Abrir menú";
+  const menuIcon = menuOpen ? "close" : "menu";
 
   return (
     <header className="app-topbar" id="app-topbar" ref={barRef}>
+      <div className="app-topbar-menu-slot">
+        <button
+          type="button"
+          className="app-topbar-menu-btn navbtn"
+          aria-label={menuLabel}
+          aria-expanded={menuOpen}
+          onClick={onMenuClick}
+        >
+          <span className="material-symbols-outlined text-[22px]">{menuIcon}</span>
+        </button>
+      </div>
+
       <div className="app-topbar-inner">
-        <div className="app-topbar-left">
-          <span className="app-topbar-brand">InvestiaBet</span>
-          <Badge variant={planVariants[user.plan] ?? "gray"}>
-            {planLabels[user.plan] ?? user.plan}
-          </Badge>
+        <div className="app-topbar-main">
+          <div className="app-topbar-start">
+            <span className="app-topbar-brand">InvestiaBet</span>
+            <Badge variant={planVariants[user.plan] ?? "gray"}>
+              {planLabels[user.plan] ?? user.plan}
+            </Badge>
+          </div>
+
           {page === "picks" && scanBadge && (
-            <>
-              <span className={scanBadge.className}>{scanBadge.text}</span>
-              {lastScan && (
-                <span className="hidden text-xs text-on-surface-variant lg:inline">
-                  {lastScan}
+            <div className="app-topbar-status">
+              <div className="app-topbar-status-row">
+                <span
+                  className={`app-topbar-status-dot${scanBadge.className.includes("b-amber") ? " app-topbar-status-dot-pending" : ""}`}
+                />
+                <span className="app-topbar-status-label">
+                  {scanBadge.text.replace(/^●\s*/, "")}
                 </span>
-              )}
-            </>
+              </div>
+              {lastScan && <span className="app-topbar-last-scan">{lastScan}</span>}
+            </div>
           )}
-        </div>
-        <div className="app-topbar-right">
-          <Link href="/" className={navClass("picks")}>
-            <span className="material-symbols-outlined text-[18px]">monitoring</span>
-            <span className="hidden sm:inline">Picks</span>
-          </Link>
-          <Link href="/stats" className={navClass("stats")}>
-            <span className="material-symbols-outlined text-[18px]">query_stats</span>
-            <span className="hidden sm:inline">Estadísticas</span>
-          </Link>
-          <button type="button" className="navbtn" onClick={onHowtoOpen}>
-            <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
-            <span className="hidden sm:inline">Cómo usar</span>
-          </button>
-          <button type="button" className="navbtn" onClick={onProfileOpen}>
-            <span className="material-symbols-outlined text-[18px]">settings</span>
-            <span className="hidden sm:inline">Perfil</span>
-          </button>
-          {showScan && (
-            <button type="button" className="navbtn" disabled={scanning} onClick={handleScan}>
-              <span className={`material-symbols-outlined text-[18px]${scanning ? " spin" : ""}`}>
-                refresh
-              </span>
-              <span className="hidden sm:inline">{scanning ? "Escaneando…" : "Escanear"}</span>
-            </button>
-          )}
-          {user.plan === "admin" && (
-            <Link
-              href="/admin"
-              className={`navbtn navbtn-admin ${page === "admin" ? "navbtn-active" : ""}`}
+
+          <div className="app-topbar-actions">
+            {showScan && (
+              <button
+                type="button"
+                className="app-topbar-icon-btn"
+                disabled={scanning}
+                onClick={handleScan}
+                aria-label={scanning ? "Escaneando…" : "Escanear"}
+                title={scanning ? "Escaneando…" : "Escanear"}
+              >
+                <span
+                  className={`material-symbols-outlined text-[20px]${scanning ? " spin" : ""}`}
+                >
+                  refresh
+                </span>
+              </button>
+            )}
+            <ThemeToggle />
+            <button
+              type="button"
+              className="app-topbar-logout-btn"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+              onClick={() => logout()}
             >
-              Admin
-            </Link>
-          )}
-          <button type="button" className="navbtn" onClick={() => logout()}>
-            <span className="material-symbols-outlined text-[18px]">logout</span>
-          </button>
+              <span className="material-symbols-outlined text-[24px]">logout</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>

@@ -101,12 +101,14 @@ export interface PeriodStats {
   won?: number;
   lost?: number;
   cashouts?: number;
+  voids?: number;
   win_rate?: number;
   roi?: number;
   growth_roi?: number;
   pnl_total?: number;
   staked_pending?: number;
   staked_resolved?: number;
+  staked_evaluable?: number;
   gold_stats?: StatsBreakdown;
   sure_stats?: StatsBreakdown;
   value_stats?: StatsBreakdown;
@@ -177,4 +179,102 @@ export interface AutoResultSuggestion {
   score_home?: number;
   score_away?: number;
   reason?: string;
+}
+
+export type EngineSignalType = "gold" | "sure";
+export type EngineSignalStatus =
+  | "pending"
+  | "won"
+  | "lost"
+  | "push"
+  | "void"
+  | "expired";
+export type EngineSignalPeriod = "all" | "30d";
+export type EngineSignalConfidence = "minimal" | "low" | "medium" | "high";
+
+export interface EngineSignalOfficialStats {
+  total: number;
+  detected: number;
+  expired: number;
+  resolved: number;
+  pending: number;
+  won: number;
+  win_rate: number;
+  pnl: number;
+  roi: number;
+  confidence: EngineSignalConfidence;
+}
+
+export interface EngineSignalHistoricalStats {
+  total: number;
+  resolved: number;
+  pending: number;
+  pending_hypothetical: number;
+  won: number;
+  win_rate: number;
+  pnl: number;
+  roi: number;
+  confidence: EngineSignalConfidence;
+}
+
+export interface EngineSignalStatsPair {
+  official: EngineSignalOfficialStats;
+  historical: EngineSignalHistoricalStats;
+}
+
+export interface EngineSignalsStatsResponse {
+  period: EngineSignalPeriod;
+  gold_stats: EngineSignalStatsPair;
+  sure_stats: EngineSignalStatsPair;
+  combined_stats: EngineSignalStatsPair;
+}
+
+export interface EngineSignal {
+  id: number;
+  signal_id: string;
+  signal_type: EngineSignalType;
+  status: EngineSignalStatus;
+  event?: string;
+  sport?: string;
+  pick_team?: string;
+  market?: string;
+  odds_ref?: number;
+  edge?: number;
+  confidence_pct?: number;
+  handicap_point?: number;
+  total_point?: number;
+  scanned_at?: string;
+  last_seen_at?: string;
+  expired_at?: string;
+  score_home?: number;
+  score_away?: number;
+  pnl?: number;
+  result_reason?: string;
+  resolution_source?: "auto" | "manual";
+  hypothetical_status?: EngineSignalStatus;
+  hypothetical_pnl?: number;
+  hypothetical_score_home?: number;
+  hypothetical_score_away?: number;
+  hypothetical_resulted_at?: string;
+  hypothetical_result_reason?: string;
+}
+
+export interface EngineSignalSuggestResultResponse extends ApiOkResponse {
+  suggested?: EngineSignalStatus | "undetermined";
+  reason?: string;
+  score_home?: number;
+  score_away?: number;
+}
+
+export interface EngineSignalsListResponse {
+  ok: boolean;
+  items: EngineSignal[];
+  limit: number;
+  offset: number;
+  total: number;
+}
+
+export interface EngineSignalOverrideResultResponse extends ApiOkResponse {
+  status?: EngineSignalStatus;
+  pnl?: number;
 }

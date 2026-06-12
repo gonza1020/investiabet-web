@@ -46,7 +46,7 @@ NEXT_PUBLIC_API_URL=
 API_PROXY_TARGET=http://localhost:8000
 ```
 
-Tras login, el token se guarda en `localStorage` (`sb_token`) y una cookie `sb_session=1` para el proxy de rutas.
+Tras login, el token se guarda en `localStorage` (`sb_token`) y una cookie `sb_session=1` para el middleware de rutas.
 
 ## Rutas
 
@@ -78,22 +78,12 @@ lib/auth/         # Token Bearer + cookie de sesión
 lib/types/        # Tipos de dominio + OpenAPI generado
 hooks/            # usePicks, useStats, usePlacedPicks
 providers/        # React Query, Auth, Toast
-proxy.ts          # Guard de rutas (cookie sb_session)
+middleware.ts     # Guard de rutas (cookie sb_session)
 ```
 
 ## Fase actual
 
-**Fases 1–6 completadas** — Paridad funcional con templates legacy (sin Fase 7/decommission).
-
-### Pendiente para cutover (Fase 6+ prod)
-
-- [ ] Deploy en Vercel con `NEXT_PUBLIC_API_URL` apuntando a Railway prod
-- [ ] Actualizar `CORS_ORIGINS` en Railway con URL de Vercel (y previews si aplica)
-- [ ] Smoke test en preview deploy contra API staging/prod
-- [ ] (Opcional) Migrar auth a cookie httpOnly vía Route Handlers (Opción B del doc)
-- [ ] (Opcional) Tests E2E con Playwright
-- [ ] (Opcional) Loading skeletons y error boundaries por página
-- [ ] DNS cutover y deprecación de `api/pages.py` — **solo Fase 7**, no hacer hasta validar prod
+**Fases 1–7 completadas** — Next.js es el único entry point UI; backend Railway solo API.
 
 ## Despliegue en Vercel
 

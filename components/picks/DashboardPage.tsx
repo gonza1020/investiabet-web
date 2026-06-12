@@ -187,7 +187,7 @@ export function DashboardPage() {
       onScanComplete={() => refetch()}
       onProfileSaved={() => refetch()}
     >
-      <main className="custom-scrollbar mx-auto max-w-[1400px] px-5 py-6">
+      <main className="custom-scrollbar mx-auto max-w-[1400px] px-4 py-6 sm:px-5">
         {user?.plan === "free" && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary/20 bg-secondary/5 p-4">
             <div>
@@ -202,7 +202,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Capital total" value={fmtUSD(data?.bankroll)} sub={bankrollSub(currency, enJuego, disponible)} />
           <KpiCard label="⭐ Gold Tips" value={String((data?.gold_tips ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_gold_potencial) : "🔒"}`} valueClass="text-violet" />
           <KpiCard label="🔒 Alta confianza" value={String((data?.sure_bets ?? []).length)} sub={`Rendimiento potencial: ${premium ? fmtPct(data?.roi_sure_potencial) : "🔒"}`} valueClass="text-secondary" />
@@ -242,57 +242,27 @@ export function DashboardPage() {
               <span className="material-symbols-outlined text-secondary">verified</span>
               <h2 className="font-headline-md text-headline-md">Gold Tips — Mejor valor</h2>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5">
-                <span className="material-symbols-outlined text-sm text-on-surface-variant">filter_alt</span>
-                <span className="font-data-label text-data-label uppercase text-on-surface-variant">Filtros</span>
-              </div>
-              <div className="relative">
-                <select
-                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
-                  value={currentTab}
-                  onChange={(e) => setCurrentTab(e.target.value as SportTab)}
-                >
-                  {SPORT_TABS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.id === "todos" ? "Todos los deportes" : t.label}
-                    </option>
-                  ))}
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <label className="shrink-0 text-xs text-on-surface-variant">Ordenar:</label>
+                <select className="select w-full sm:w-auto" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
+                  <option value="fecha">📅 Fecha (más próximos)</option>
+                  <option value="ventaja">📈 Ventaja (mejor valor)</option>
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
-                  expand_more
-                </span>
               </div>
-              <div className="mx-1 h-6 w-px bg-outline-variant" />
-              <div className="relative">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <label className="shrink-0 text-xs text-on-surface-variant">Ventaja mín.:</label>
                 <select
-                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
-                  value={sortMode}
-                  onChange={(e) => setSortMode(e.target.value as SortMode)}
-                >
-                  <option value="fecha">Ordenar por fecha</option>
-                  <option value="ventaja">Ordenar por ventaja</option>
-                </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
-                  expand_more
-                </span>
-              </div>
-              <div className="mx-1 h-6 w-px bg-outline-variant" />
-              <div className="relative">
-                <select
-                  className="cursor-pointer appearance-none border-none bg-transparent pr-6 font-button text-xs text-on-surface-variant outline-none focus:ring-0"
+                  className="select w-full sm:w-auto"
                   value={minEdge ?? minEdgeOptions[0] ?? 0}
                   onChange={(e) => setMinEdge(parseInt(e.target.value))}
                 >
                   {minEdgeOptions.map((v, i) => (
                     <option key={v} value={v}>
-                      Ventaja ≥ {v}%{i === 0 ? " (todas)" : ""}
+                      {v}%{i === 0 ? " (todas)" : ""}
                     </option>
                   ))}
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
-                  expand_more
-                </span>
               </div>
             </div>
           </div>

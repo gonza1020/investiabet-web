@@ -15,6 +15,9 @@ import type { AutoResultSuggestion, PeriodStats, Pick, StatsBreakdown, StatsResp
 import { useInvalidateStats, useStats } from "@/hooks/use-stats";
 import { useState } from "react";
 import { EquityChart } from "@/components/stats/EquityChart";
+import { HistoryPickCard } from "@/components/stats/HistoryPickCard";
+import { MonthlySummaryCard } from "@/components/stats/MonthlySummaryCard";
+import { statusBadge, typeBadge } from "@/components/stats/stats-badges";
 
 type Period = "mes" | "todo";
 
@@ -33,7 +36,7 @@ export function StatsPageContent() {
 
   if (isLoading || !data) {
     return (
-      <main className="mx-auto max-w-[1400px] px-5 py-6">
+      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-5">
         <div className="empty">
           <span className="material-symbols-outlined spin">progress_activity</span> Cargando estadísticas…
         </div>
@@ -73,7 +76,7 @@ export function StatsPageContent() {
   };
 
   return (
-    <main className="mx-auto max-w-[1400px] px-5 py-6">
+    <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-5">
       <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-display-lg text-display-lg text-secondary">Resumen de rendimiento</h1>
@@ -124,7 +127,7 @@ export function StatsPageContent() {
         </section>
       )}
 
-      <KpiGrid data={data} period={period} stats={b} />
+      <KpiGrid stats={b} />
       <KpiStrip stats={b} />
 
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -237,24 +240,6 @@ function CapitalCard({
   );
 }
 
-function typeBadge(type?: string, gold?: boolean) {
-  if (gold) return <Badge variant="violet">⭐ Gold</Badge>;
-  if (type === "sure") return <Badge variant="teal">🔒 Alta confianza</Badge>;
-  return <Badge variant="blue">📊 Valor</Badge>;
-}
-
-function statusBadge(status?: string) {
-  const map: Record<string, { v: "teal" | "red" | "amber" | "gray" | "violet"; l: string }> = {
-    won: { v: "teal", l: "✓ Ganó" },
-    lost: { v: "red", l: "✗ Perdió" },
-    pending: { v: "amber", l: "⏳ Pendiente" },
-    void: { v: "gray", l: "— Anulada" },
-    cashout: { v: "violet", l: "💸 Cobro anticipado" },
-  };
-  const m = map[status ?? ""] ?? { v: "gray" as const, l: status ?? "" };
-  return <Badge variant={m.v}>{m.l}</Badge>;
-}
-
 function PendingPickCard({
   pick,
   suggestion,
@@ -327,14 +312,14 @@ function PendingPickCard({
             <input className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[13px]" type="number" step="0.01" value={oddsCo} onChange={(e) => setOddsCo(e.target.value)} />
           </div>
         )}
-        <div className="resultado-btns">
-          <button type="button" className="rbtn ganado" onClick={() => submit("won")}>✓ Ganó</button>
-          <button type="button" className="rbtn perdido" onClick={() => submit("lost")}>✗ Perdió</button>
-          <button type="button" className="rbtn cashout" onClick={() => { setShowCo(true); submit("cashout"); }}>💸 Cobro anticipado</button>
-          <button type="button" className="rbtn" onClick={() => submit("void")}>— Anulada</button>
+        <div className="resultado-btns grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <button type="button" className="rbtn ganado min-h-11" onClick={() => submit("won")}>✓ Ganó</button>
+          <button type="button" className="rbtn perdido min-h-11" onClick={() => submit("lost")}>✗ Perdió</button>
+          <button type="button" className="rbtn cashout min-h-11" onClick={() => { setShowCo(true); submit("cashout"); }}>💸 Cobro anticipado</button>
+          <button type="button" className="rbtn min-h-11" onClick={() => submit("void")}>— Anulada</button>
           <button
             type="button"
-            className="rbtn ml-auto"
+            className="rbtn min-h-11 sm:col-span-3"
             style={{ color: "var(--red)", borderColor: "rgba(239,68,68,.3)" }}
             onClick={async () => {
               if (!confirm("¿Eliminar esta apuesta?")) return;
@@ -350,10 +335,10 @@ function PendingPickCard({
   );
 }
 
-function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period; stats?: PeriodStats }) {
+function KpiGrid({ stats }: { stats?: PeriodStats }) {
   if (!stats?.total_placed) {
     return (
-      <div id="kpi-grid" className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div id="kpi-grid" className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="empty col-span-full">
           <span className="empty-icon">📊</span>
           Sin datos en este período. Registrá apuestas desde el panel de picks.
@@ -363,15 +348,14 @@ function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period;
   }
   const wr = stats.win_rate ?? 0;
   const growthRoi = stats.growth_roi ?? stats.roi;
-  const dailyRoi = data.daily_roi;
-  const periodDays = period === "mes" ? Math.min(data.active_days ?? 1, 30) : data.active_days ?? 1;
+  const yieldRoi = stats.roi ?? 0;
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <KpiCard label="ROI (crecimiento)" value={fmtPct(growthRoi)} color={(growthRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`sobre tu capital inicial · yield ${fmtPct(stats.roi)}`} bar={undefined} />
-      <KpiCard label="% de aciertos" value={`${fmt(wr, 1)}%`} color={wr >= 60 ? "var(--teal)" : wr >= 50 ? "var(--blue)" : wr >= 40 ? "var(--amber)" : "var(--red)"} sub={`${stats.won ?? 0} ✓ · ${stats.lost ?? 0} ✗ · ${stats.cashouts ?? 0} 💸`} bar={wr} />
+    <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <KpiCard label="ROI (crecimiento)" value={fmtPct(growthRoi)} color={(growthRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub="sobre tu capital inicial" />
+      <KpiCard label="Yield" value={fmtPct(yieldRoi)} color={yieldRoi >= 0 ? "var(--teal)" : "var(--red)"} sub={`P&L sobre apuestas decididas · ARS ${fmtMiles(stats.staked_evaluable ?? stats.staked_resolved)} invertidos`} />
+      <KpiCard label="% de aciertos" value={`${fmt(wr, 1)}%`} color={wr >= 60 ? "var(--teal)" : wr >= 50 ? "var(--blue)" : wr >= 40 ? "var(--amber)" : "var(--red)"} sub={`${stats.won ?? 0} ✓ · ${stats.lost ?? 0} ✗ · ${stats.cashouts ?? 0} 💸 · ${stats.voids ?? 0} —`} bar={wr} />
       <KpiCard label="Ganancia neta" value={fmtUSD(stats.pnl_total, "ARS", true)} color={(stats.pnl_total ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub="total ganado o perdido" />
-      <KpiCard label="Rendimiento diario" value={fmtPct(dailyRoi)} color={(dailyRoi ?? 0) >= 0 ? "var(--teal)" : "var(--red)"} sub={`compuesto · ${periodDays} día(s)`} />
     </div>
   );
 }
@@ -379,7 +363,7 @@ function KpiGrid({ data, period, stats }: { data: StatsResponse; period: Period;
 function KpiStrip({ stats }: { stats?: PeriodStats }) {
   if (!stats?.total_placed) return null;
   return (
-    <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
       <KpiCard label="Apuestas registradas" value={String(stats.total_placed)} color="var(--blue)" sub={`${stats.pending_picks ?? 0} pendientes`} />
       <KpiCard label="Resueltas" value={String(stats.total_resolved)} color="var(--text)" sub="con resultado cargado" />
       <KpiCard label="En juego" value={fmtMiles(stats.staked_pending)} color="var(--amber)" sub="ARS pendiente resultado" />
@@ -459,33 +443,50 @@ function MonthlyTable({ history }: { history: Pick[] }) {
   const rows = Object.keys(groups).sort().reverse().slice(0, 8);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="bg-[var(--bg3)] text-on-surface-variant">
-            <th className="px-5 py-3 font-data-label text-data-label uppercase">Mes</th>
-            <th className="px-5 py-3 font-data-label text-data-label uppercase">Volumen</th>
-            <th className="px-5 py-3 font-data-label text-data-label uppercase">ROI</th>
-            <th className="px-5 py-3 font-data-label text-data-label uppercase">Ganancia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((k) => {
-            const g = groups[k];
-            const roi = g.stake > 0 ? (g.pnl / g.stake) * 100 : 0;
-            const c = g.pnl >= 0 ? "var(--teal)" : "var(--red)";
-            return (
-              <tr key={k} className="border-t border-outline-variant">
-                <td className="px-5 py-3 capitalize font-medium">{g.label}</td>
-                <td className="px-5 py-3 text-on-surface-variant">{g.count} picks</td>
-                <td className="px-5 py-3 font-bold" style={{ color: c }}>{fmtPct(roi)}</td>
-                <td className="px-5 py-3" style={{ color: c }}>{g.pnl >= 0 ? "+" : ""}ARS {fmtMiles(Math.abs(g.pnl))}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="space-y-3 md:hidden">
+        {rows.map((k) => {
+          const g = groups[k];
+          const roi = g.stake > 0 ? (g.pnl / g.stake) * 100 : 0;
+          return (
+            <MonthlySummaryCard
+              key={k}
+              label={g.label}
+              count={g.count}
+              roi={roi}
+              pnl={g.pnl}
+            />
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="bg-[var(--bg3)] text-on-surface-variant">
+              <th className="px-5 py-3 font-data-label text-data-label uppercase">Mes</th>
+              <th className="px-5 py-3 font-data-label text-data-label uppercase">Volumen</th>
+              <th className="px-5 py-3 font-data-label text-data-label uppercase">ROI</th>
+              <th className="px-5 py-3 font-data-label text-data-label uppercase">Ganancia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((k) => {
+              const g = groups[k];
+              const roi = g.stake > 0 ? (g.pnl / g.stake) * 100 : 0;
+              const c = g.pnl >= 0 ? "var(--teal)" : "var(--red)";
+              return (
+                <tr key={k} className="border-t border-outline-variant">
+                  <td className="px-5 py-3 capitalize font-medium">{g.label}</td>
+                  <td className="px-5 py-3 text-on-surface-variant">{g.count} picks</td>
+                  <td className="px-5 py-3 font-bold" style={{ color: c }}>{fmtPct(roi)}</td>
+                  <td className="px-5 py-3" style={{ color: c }}>{g.pnl >= 0 ? "+" : ""}ARS {fmtMiles(Math.abs(g.pnl))}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -629,7 +630,12 @@ function HistoryTable({ history, onEdit }: { history: Pick[]; onEdit: (id: numbe
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="space-y-3 p-4 md:hidden">
+        {rows.map((p) => (
+          <HistoryPickCard key={p.id} pick={p} onEdit={onEdit} />
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="hist-table">
           <thead>
             <tr>

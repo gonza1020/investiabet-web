@@ -78,7 +78,7 @@ function BetFooter({
         <span className="text-secondary">@{fmt(pick.odds_ref, 2)}</span>
       </div>
       <div className="mb-2 text-xs text-on-surface-variant">{pick.market || "Resultado"}</div>
-      <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+      <div className="mb-3 grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
         <div className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-1 py-2.5">
           <div className="font-data-label text-[10px] uppercase text-on-surface-variant">Apostar</div>
           <div className="text-stat-lg font-bold">{fmtMiles(pick.stake_usd)}</div>
@@ -177,7 +177,7 @@ export function SureBetCard({ pick, currency = "ARS", showStake, mark, onPlace, 
           </p>
         </div>
         {showStake && (
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="grid grid-cols-1 gap-2 text-center text-xs sm:grid-cols-3">
             <div className="rounded-lg bg-surface-container-lowest py-2">
               <div className="text-[10px] text-on-surface-variant">Pinnacle</div>
               <div className="font-bold">{fmt((pick.prob_pinnacle ?? 0) * 100, 0)}%</div>
