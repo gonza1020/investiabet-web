@@ -60,6 +60,7 @@ export interface Pick {
   discard_reason?: string;
   type?: string;
   bankroll_engine?: number;
+  bankroll_before?: number;
   placed_at?: string;
   resulted_at?: string;
   status?: PickStatus;

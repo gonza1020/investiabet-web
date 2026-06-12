@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Modal } from "@/components/ui/Modal";
 import { adjustBankroll, revertBankrollAdjustment } from "@/lib/api/account";
 import {
@@ -11,7 +12,8 @@ import {
   markPickResult,
 } from "@/lib/api/picks";
 import { dep, fmt, fmtDate, fmtMiles, fmtPct, fmtUSD } from "@/lib/format";
-import type { AutoResultSuggestion, PeriodStats, Pick, StatsBreakdown, StatsResponse } from "@/lib/types/domain";
+import type { AutoResultSuggestion, BankrollHistoryEntry, PeriodStats, Pick, StatsBreakdown, StatsResponse } from "@/lib/types/domain";
+import { buildMonthlyPerformance } from "@/lib/stats/monthly-performance";
 import { useInvalidateStats, useStats } from "@/hooks/use-stats";
 import { useState } from "react";
 import { EquityChart } from "@/components/stats/EquityChart";
@@ -33,6 +35,7 @@ export function StatsPageContent() {
   const [autoInfo, setAutoInfo] = useState("");
   const [suggestions, setSuggestions] = useState<AutoResultSuggestion[]>([]);
   const [autoLoading, setAutoLoading] = useState(false);
+  const [revertTarget, setRevertTarget] = useState<{ id: number; type: string } | null>(null);
 
   if (isLoading || !data) {
     return (
@@ -144,8 +147,15 @@ export function StatsPageContent() {
         <div className="glass-card overflow-hidden">
           <div className="border-b border-outline-variant p-5">
             <h3 className="font-headline-md text-headline-md">Rendimiento mensual</h3>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Yield sobre apuestas · ROI sobre capital al inicio del mes
+            </p>
           </div>
-          <MonthlyTable history={data.history ?? []} />
+          <MonthlyTable
+            history={data.history ?? []}
+            bankroll={data.bankroll ?? 0}
+            bankrollHist={data.bankroll_hist ?? []}
+          />
         </div>
         <div className="glass-card overflow-hidden">
           <div className="border-b border-outline-variant p-5">
@@ -153,11 +163,7 @@ export function StatsPageContent() {
           </div>
           <MovementsList
             items={data.bankroll_hist ?? []}
-            onRevert={async (id) => {
-              if (!confirm("¿Revertir este movimiento?")) return;
-              const d = await revertBankrollAdjustment(id);
-              if (d.ok) invalidate();
-            }}
+            onRevert={(id, type) => setRevertTarget({ id, type })}
           />
         </div>
       </div>
@@ -197,6 +203,24 @@ export function StatsPageContent() {
           onSaved={() => { setEditOpen(false); invalidate(); }}
         />
       )}
+      <ConfirmModal
+        open={revertTarget !== null}
+        onClose={() => setRevertTarget(null)}
+        title="Revertir movimiento"
+        message={
+          revertTarget?.type === "manual_pick"
+            ? "Se revertirá el ajuste de capital y también se eliminará la apuesta del historial. Esta acción no se puede deshacer."
+            : "Se revertirá el ajuste de capital. Esta acción no se puede deshacer."
+        }
+        confirmLabel="Revertir"
+        variant="danger"
+        onConfirm={async () => {
+          if (!revertTarget) return;
+          const d = await revertBankrollAdjustment(revertTarget.id);
+          if (!d.ok) throw new Error(d.error ?? "No se pudo revertir el movimiento");
+          invalidate();
+        }}
+      />
     </main>
   );
 }
@@ -427,37 +451,31 @@ function SportDist({ stats }: { stats?: PeriodStats }) {
   );
 }
 
-function MonthlyTable({ history }: { history: Pick[] }) {
-  const res = history.filter((p) => p.status && p.status !== "pending");
-  if (!res.length) return <div className="empty">Sin apuestas resueltas todavía.</div>;
-  const groups: Record<string, { label: string; count: number; pnl: number; stake: number }> = {};
-  res.forEach((p) => {
-    const d = new Date(p.resulted_at ?? p.placed_at ?? Date.now());
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-    if (!groups[key]) groups[key] = { label, count: 0, pnl: 0, stake: 0 };
-    groups[key].count++;
-    groups[key].pnl += p.pnl ?? 0;
-    groups[key].stake += p.stake_usd ?? 0;
-  });
-  const rows = Object.keys(groups).sort().reverse().slice(0, 8);
+function MonthlyTable({
+  history,
+  bankroll,
+  bankrollHist,
+}: {
+  history: Pick[];
+  bankroll: number;
+  bankrollHist: BankrollHistoryEntry[];
+}) {
+  const rows = buildMonthlyPerformance(history, bankroll, bankrollHist);
+  if (!rows.length) return <div className="empty">Sin apuestas resueltas todavía.</div>;
 
   return (
     <>
-      <div className="space-y-3 md:hidden">
-        {rows.map((k) => {
-          const g = groups[k];
-          const roi = g.stake > 0 ? (g.pnl / g.stake) * 100 : 0;
-          return (
-            <MonthlySummaryCard
-              key={k}
-              label={g.label}
-              count={g.count}
-              roi={roi}
-              pnl={g.pnl}
-            />
-          );
-        })}
+      <div className="space-y-3 p-4 md:hidden">
+        {rows.map((row) => (
+          <MonthlySummaryCard
+            key={row.key}
+            label={row.label}
+            count={row.count}
+            yieldPct={row.yieldPct}
+            growthRoiPct={row.growthRoiPct}
+            pnl={row.pnl}
+          />
+        ))}
       </div>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-left text-sm">
@@ -465,21 +483,23 @@ function MonthlyTable({ history }: { history: Pick[] }) {
             <tr className="bg-[var(--bg3)] text-on-surface-variant">
               <th className="px-5 py-3 font-data-label text-data-label uppercase">Mes</th>
               <th className="px-5 py-3 font-data-label text-data-label uppercase">Volumen</th>
+              <th className="px-5 py-3 font-data-label text-data-label uppercase">Yield</th>
               <th className="px-5 py-3 font-data-label text-data-label uppercase">ROI</th>
               <th className="px-5 py-3 font-data-label text-data-label uppercase">Ganancia</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((k) => {
-              const g = groups[k];
-              const roi = g.stake > 0 ? (g.pnl / g.stake) * 100 : 0;
-              const c = g.pnl >= 0 ? "var(--teal)" : "var(--red)";
+            {rows.map((row) => {
+              const c = row.pnl >= 0 ? "var(--teal)" : "var(--red)";
               return (
-                <tr key={k} className="border-t border-outline-variant">
-                  <td className="px-5 py-3 capitalize font-medium">{g.label}</td>
-                  <td className="px-5 py-3 text-on-surface-variant">{g.count} picks</td>
-                  <td className="px-5 py-3 font-bold" style={{ color: c }}>{fmtPct(roi)}</td>
-                  <td className="px-5 py-3" style={{ color: c }}>{g.pnl >= 0 ? "+" : ""}ARS {fmtMiles(Math.abs(g.pnl))}</td>
+                <tr key={row.key} className="border-t border-outline-variant">
+                  <td className="px-5 py-3 capitalize font-medium">{row.label}</td>
+                  <td className="px-5 py-3 text-on-surface-variant">{row.count} picks</td>
+                  <td className="px-5 py-3 font-bold" style={{ color: c }}>{fmtPct(row.yieldPct)}</td>
+                  <td className="px-5 py-3 font-bold" style={{ color: c }}>{fmtPct(row.growthRoiPct)}</td>
+                  <td className="px-5 py-3" style={{ color: c }}>
+                    {row.pnl >= 0 ? "+" : ""}ARS {fmtMiles(Math.abs(row.pnl))}
+                  </td>
                 </tr>
               );
             })}
@@ -495,7 +515,7 @@ function MovementsList({
   onRevert,
 }: {
   items: StatsResponse["bankroll_hist"];
-  onRevert: (id: number) => void;
+  onRevert: (id: number, type: string) => void;
 }) {
   if (!items?.length) return <div className="empty">Sin movimientos.</div>;
   const typeLbl: Record<string, string> = {
@@ -524,7 +544,7 @@ function MovementsList({
               {h.created_at ? fmtDate(h.created_at) : ""}
             </span>
             {h.type !== "pick_placed" && h.type !== "pick_result" && (
-              <button type="button" className="btn text-[11px]" style={{ color: "var(--red)" }} onClick={() => onRevert(h.id)}>
+              <button type="button" className="btn text-[11px]" style={{ color: "var(--red)" }} onClick={() => onRevert(h.id, h.type)}>
                 ↩ Revertir
               </button>
             )}
